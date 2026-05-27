@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: data-web-app-ingress
+  labels:
+    app: data-web-app
+  annotations:
+    # For Nginx Ingress Controller
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    
+    # For AWS ALB
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    
+    # For TLS
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # kubernetes.io/tls-acme: "true"
+spec:
+  rules:
+  - host: data-app.your-domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: data-web-app-service
+            port:
+              name: http
+      
+  # Uncomment for TLS
+  # tls:
+  # - hosts:
+  #   - data-app.your-domain.com
+  #   secretName: data-app-tls-secret
