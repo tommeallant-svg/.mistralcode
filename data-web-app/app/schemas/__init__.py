@@ -13,6 +13,9 @@ from .dataset import (
 from .user import UserBase, UserCreate, UserUpdate, UserResponse, UserLogin, TokenResponse, MessageResponse
 from .trip import TripBase, TripCreate, TripUpdate, TripResponse, TripListResponse, TripSummaryResponse, TripTableRow
 from .step import StepCategory, TransportType, StepBase, StepCreate, StepUpdate, StepResponse, StepListResponse, StepTableRow, StepReorderRequest
+
+# Rebuild models to resolve forward references
+TripResponse.model_rebuild()
 from .shared_trip import SharedTripBase, SharedTripCreate, SharedTripResponse, SharedTripListResponse
 from .ai import AIMessage, AIChatRequest, AIChatResponse, AIResponse, AIProposal, AIAddStepRequest
 
