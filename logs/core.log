@@ -26,3 +26,24 @@
 [2026-05-27T13:40:09] Unknown context provider folder 
 [2026-05-27T13:40:09] Unknown context provider codebase 
 [2026-05-27T13:40:09] [binary] Core started 
+[info] Starting Continue core...
+[2026-05-27T14:31:13] [info] Starting Continue core... 
+[2026-05-27T14:31:13] Setup 
+[2026-05-27T14:31:13] Config has not changed, skipping write 
+[2026-05-27T14:31:14] Unknown context provider folder 
+[2026-05-27T14:31:14] Unknown context provider codebase 
+[2026-05-27T14:31:14] [binary] Core started 
+[info] Starting Continue core...
+[2026-06-03T08:21:35] [info] Starting Continue core... 
+[2026-06-03T08:21:35] Setup 
+[2026-06-03T08:21:35] Config has not changed, skipping write 
+[2026-06-03T08:21:39] Unknown context provider folder 
+[2026-06-03T08:21:39] Unknown context provider codebase 
+[2026-06-03T08:21:39] [binary] Core started 
+[info] Starting Continue core...
+[2026-06-17T14:02:14] [info] Starting Continue core... 
+[2026-06-17T14:02:14] Setup 
+[2026-06-17T14:02:15] Config has not changed, skipping write 
+[2026-06-17T14:02:34] Unknown context provider folder 
+[2026-06-17T14:02:34] Unknown context provider codebase 
+[2026-06-17T14:02:34] [binary] Core started 

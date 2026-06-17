@@ -9,7 +9,7 @@ import logging
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text, select, MetaData, Table, Column
+from sqlalchemy import text, select, MetaData, Table, Column, String, Integer
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..config import settings
