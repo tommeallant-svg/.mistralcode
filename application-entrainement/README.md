@@ -25,6 +25,14 @@ L'application sera accessible sur :
 - Backend API : http://localhost:8000
 - Documentation API : http://localhost:8000/docs
 
+## Initialisation de la base de données (Seeding)
+
+Pour peupler la base de données PostgreSQL avec des données de test, exécutez la commande suivante :
+
+```bash
+docker exec application-entrainement-backend-1 python seed.py
+```
+
 ## Déploiement Kubernetes
 
 ```bash
