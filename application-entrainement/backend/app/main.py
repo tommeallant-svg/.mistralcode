@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .api import trips
+from .api import workouts
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(trips.router, prefix="/api")
+app.include_router(workouts.router, prefix="/api")
 
 @app.get("/")
 def read_root():
