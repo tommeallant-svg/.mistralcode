@@ -47,9 +47,15 @@ export default function CalendarPage() {
     try {
       const response = await fetch('/api/workouts');
       const data = await response.json();
-      setWorkouts(data);
+      if (Array.isArray(data)) {
+        setWorkouts(data);
+      } else {
+        console.error('Data is not an array:', data);
+        setWorkouts([]);
+      }
     } catch (error) {
       console.error('Failed to fetch workouts:', error);
+      setWorkouts([]);
     }
   };
 
@@ -149,7 +155,7 @@ export default function CalendarPage() {
     return (
       <div className="grid grid-cols-7 auto-rows-fr border-l border-t border-gray-200 min-h-[600px]">
         {days.map((day, idx) => {
-          const dayWorkouts = workouts.filter(w => isSameDay(parseISO(w.date), day));
+          const dayWorkouts = (Array.isArray(workouts) ? workouts : []).filter(w => isSameDay(parseISO(w.date), day));
           return (
             <div 
               key={idx}

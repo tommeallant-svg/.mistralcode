@@ -10,6 +10,9 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def seed():
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+    
     db = SessionLocal()
     # Clean existing workouts
     db.query(Workout).delete()
