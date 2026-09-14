@@ -27,7 +27,9 @@ import {
   X,
   CheckCircle2,
   Clock,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Activity,
+  AlignLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { Workout } from '@/types/workout';
@@ -94,39 +96,47 @@ export default function CalendarPage() {
   };
 
   const renderHeader = () => (
-    <div className="flex items-center justify-between mb-8">
-      <div className="flex items-center gap-4">
-        <h1 className="text-3xl font-bold text-gray-800 capitalize">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-5xl font-black text-black tracking-tighter uppercase leading-none">
           {format(currentDate, 'MMMM yyyy', { locale: fr })}
         </h1>
-        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-2 text-gray-400 font-bold uppercase text-xs tracking-widest">
+          <CalendarIcon className="w-4 h-4" />
+          <span>Tableau de Bord Entraînement</span>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center bg-gray-100 rounded-2xl p-1.5 border border-gray-200">
           <button 
             onClick={() => setView('month')}
-            className={`px-4 py-2 rounded-md transition-all ${view === 'month' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600'}`}
+            className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${view === 'month' ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:text-black'}`}
           >
-            Mois
+            MOIS
           </button>
           <button 
             onClick={() => setView('week')}
-            className={`px-4 py-2 rounded-md transition-all ${view === 'week' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600'}`}
+            className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${view === 'week' ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:text-black'}`}
           >
-            Semaine
+            SEMAINE
           </button>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={prev} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button 
-          onClick={() => setCurrentDate(new Date())}
-          className="px-4 py-2 hover:bg-gray-100 rounded-md text-sm font-medium"
-        >
-          Aujourd'hui
-        </button>
-        <button onClick={next} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ChevronRight className="w-6 h-6" />
-        </button>
+
+        <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 border border-gray-200">
+          <button onClick={prev} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button 
+            onClick={() => setCurrentDate(new Date())}
+            className="px-4 py-2 hover:bg-gray-100 rounded-xl text-xs font-black uppercase tracking-wider"
+          >
+            Aujourd'hui
+          </button>
+          <button onClick={next} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -134,9 +144,9 @@ export default function CalendarPage() {
   const renderDays = () => {
     const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     return (
-      <div className="grid grid-cols-7 mb-2 border-b border-gray-200">
+      <div className="grid grid-cols-7 mb-0 bg-black text-white rounded-t-2xl">
         {days.map(day => (
-          <div key={day} className="py-2 text-center text-sm font-semibold text-gray-500 uppercase">
+          <div key={day} className="py-4 text-center text-xs font-black uppercase tracking-widest border-r border-white/10 last:border-r-0">
             {day}
           </div>
         ))}
@@ -153,38 +163,49 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
-      <div className="grid grid-cols-7 auto-rows-fr border-l border-t border-gray-200 min-h-[600px]">
+      <div className="grid grid-cols-7 auto-rows-fr border-l border-b border-gray-200">
         {days.map((day, idx) => {
           const dayWorkouts = (Array.isArray(workouts) ? workouts : []).filter(w => isSameDay(parseISO(w.date), day));
+          const isToday = isSameDay(day, new Date());
+          const isNotCurrentMonth = !isSameMonth(day, monthStart) && view === 'month';
+
           return (
             <div 
               key={idx}
-              className={`min-h-[120px] p-2 border-r border-b border-gray-200 transition-colors ${
-                !isSameMonth(day, monthStart) && view === 'month' ? 'bg-gray-50 text-gray-400' : 'bg-white'
-              } ${isSameDay(day, new Date()) ? 'bg-blue-50/30' : ''}`}
+              className={`min-h-[160px] p-3 border-r border-t border-gray-200 transition-all ${
+                isNotCurrentMonth ? 'bg-gray-50/50 text-gray-300' : 'bg-white'
+              } ${isToday ? 'bg-yellow-50/50' : ''}`}
             >
-              <span className={`text-sm font-medium ${isSameDay(day, new Date()) ? 'bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full' : ''}`}>
-                {format(day, 'd')}
-              </span>
-              <div className="mt-2 space-y-1">
+              <div className="flex justify-between items-start mb-2">
+                <span className={`text-sm font-black tracking-tighter ${
+                  isToday 
+                    ? 'bg-black text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg' 
+                    : isNotCurrentMonth ? 'text-gray-300' : 'text-gray-400'
+                }`}>
+                  {format(day, 'd')}
+                </span>
+              </div>
+              <div className="space-y-2">
                 {dayWorkouts.map(workout => (
                   <div 
                     key={workout.id}
                     onClick={() => handleWorkoutClick(workout)}
-                    className={`p-2 rounded cursor-pointer text-xs border transition-all hover:shadow-md ${
+                    className={`p-3 rounded-xl cursor-pointer text-xs border-2 transition-all hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${
                       workout.is_validated 
-                        ? 'bg-green-50 border-green-200 text-green-700' 
-                        : 'bg-blue-50 border-blue-200 text-blue-700'
+                        ? 'bg-white border-green-500 text-black' 
+                        : 'bg-black border-black text-white'
                     }`}
                   >
-                    <div className="font-bold uppercase flex items-center justify-between">
-                      {workout.workout_type}
-                      {workout.is_validated && <CheckCircle2 className="w-3 h-3" />}
+                    <div className="font-black uppercase tracking-tighter flex items-center justify-between mb-1">
+                      <span className="truncate">{workout.workout_type}</span>
+                      {workout.is_validated && <CheckCircle2 className="w-3 h-3 text-green-500" />}
                     </div>
-                    {view === 'week' && <div className="truncate font-medium">{workout.name}</div>}
-                    <div className="flex items-center gap-1 mt-1 opacity-80">
+                    <div className={`truncate font-bold opacity-80 ${workout.is_validated ? 'text-gray-600' : 'text-gray-300'}`}>
+                      {workout.name}
+                    </div>
+                    <div className="flex items-center gap-1 mt-2 font-black uppercase text-[9px] tracking-widest">
                       <Clock className="w-3 h-3" />
-                      {workout.duration_minutes} min
+                      {workout.duration_minutes} MIN
                     </div>
                   </div>
                 ))}
@@ -207,88 +228,105 @@ export default function CalendarPage() {
     });
 
     return (
-      <div className={`fixed inset-y-0 right-0 w-96 bg-white shadow-2xl transform transition-transform duration-300 z-50 ${isSideMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-6 h-full flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Détails de la séance</h2>
-            <button onClick={() => setIsSideMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
-              <X className="w-6 h-6" />
+      <div className={`fixed inset-y-0 right-0 w-full md:w-[450px] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] transform transition-transform duration-500 ease-in-out z-50 ${isSideMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="p-8 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-8 bg-black rounded-full" />
+              <h2 className="text-2xl font-black text-black uppercase tracking-tighter">Détails</h2>
+            </div>
+            <button onClick={() => setIsSideMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <X className="w-8 h-8 text-black" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-8 pr-2 custom-scrollbar">
             <div>
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 uppercase mb-2">
+              <span className="inline-block px-4 py-1.5 rounded-full text-[10px] font-black bg-yellow-400 text-black uppercase tracking-widest mb-4">
                 {selectedWorkout.workout_type}
               </span>
-              <h3 className="text-2xl font-bold text-gray-900">{selectedWorkout.name}</h3>
-              <p className="text-gray-500 mt-1">{format(parseISO(selectedWorkout.date), 'EEEE d MMMM', { locale: fr })}</p>
+              <h3 className="text-4xl font-black text-black leading-none uppercase tracking-tighter">{selectedWorkout.name}</h3>
+              <p className="text-gray-400 font-bold mt-4 uppercase text-xs tracking-widest">{format(parseISO(selectedWorkout.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-gray-500 text-xs mb-1">Durée</div>
-                <div className="font-bold flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  {selectedWorkout.duration_minutes} min
+              <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl">
+                <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Durée</div>
+                <div className="text-2xl font-black flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-black" />
+                  {selectedWorkout.duration_minutes}<span className="text-sm">MIN</span>
                 </div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-gray-500 text-xs mb-1">Difficulté prévue</div>
-                <div className="font-bold">{selectedWorkout.difficulty_level} / 10</div>
+              <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl">
+                <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Intensité</div>
+                <div className="text-2xl font-black flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-black" />
+                  {selectedWorkout.difficulty_level}<span className="text-sm">/10</span>
+                </div>
               </div>
             </div>
 
             <div>
-              <h4 className="font-bold text-sm text-gray-700 uppercase mb-2">Description</h4>
-              <p className="text-gray-600 text-sm leading-relaxed">{selectedWorkout.description_short}</p>
+              <h4 className="font-black text-xs text-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                <AlignLeft className="w-4 h-4" />
+                Description
+              </h4>
+              <p className="text-gray-600 text-sm leading-relaxed font-medium bg-gray-50 p-6 rounded-3xl border border-gray-100 italic">
+                "{selectedWorkout.description_short}"
+              </p>
             </div>
 
             <div>
-              <h4 className="font-bold text-sm text-gray-700 uppercase mb-2 border-b pb-1">Déplacer vers (cette semaine)</h4>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {weekDays.map(day => (
-                  <button
-                    key={day.toISOString()}
-                    onClick={() => shiftWorkout(selectedWorkout, day)}
-                    disabled={isSameDay(day, parseISO(selectedWorkout.date))}
-                    className={`px-3 py-1 rounded text-xs transition-colors ${
-                      isSameDay(day, parseISO(selectedWorkout.date))
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {format(day, 'EEE', { locale: fr })}
-                  </button>
-                ))}
+              <h4 className="font-black text-xs text-black uppercase tracking-widest mb-4">Déplacer la séance</h4>
+              <div className="grid grid-cols-7 gap-2">
+                {weekDays.map(day => {
+                  const isCurrent = isSameDay(day, parseISO(selectedWorkout.date));
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      onClick={() => shiftWorkout(selectedWorkout, day)}
+                      disabled={isCurrent}
+                      className={`h-12 flex flex-col items-center justify-center rounded-xl transition-all ${
+                        isCurrent
+                          ? 'bg-black text-white shadow-lg scale-110 z-10'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      <span className="text-[10px] font-black uppercase">{format(day, 'EEE', { locale: fr }).substring(0, 3)}</span>
+                      <span className="text-xs font-black">{format(day, 'd')}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {selectedWorkout.is_validated && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-700 font-bold mb-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  Séance validée
+              <div className="bg-green-500 text-white rounded-3xl p-6 shadow-xl shadow-green-100">
+                <div className="flex items-center gap-3 font-black uppercase tracking-widest mb-4">
+                  <CheckCircle2 className="w-6 h-6" />
+                  Séance Complétée
                 </div>
-                <div className="text-sm text-green-800">
-                  <span className="font-semibold">Ressenti:</span> {selectedWorkout.perceived_difficulty}/10
-                </div>
-                {selectedWorkout.athlete_comment && (
-                  <div className="text-sm text-green-800 mt-1 italic">
-                    "{selectedWorkout.athlete_comment}"
+                <div className="space-y-2">
+                  <div className="text-sm opacity-90 font-bold">
+                    Difficulté ressentie : <span className="text-lg font-black">{selectedWorkout.perceived_difficulty}/10</span>
                   </div>
-                )}
+                  {selectedWorkout.athlete_comment && (
+                    <div className="text-sm bg-white/10 p-4 rounded-2xl italic font-medium">
+                      "{selectedWorkout.athlete_comment}"
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t">
+          <div className="mt-10">
             <Link 
               href={`/workouts/${selectedWorkout.id}`}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-200"
+              className="w-full flex items-center justify-center gap-3 bg-black hover:bg-gray-900 text-white font-black uppercase tracking-widest py-5 rounded-2xl transition-all shadow-2xl active:scale-[0.98]"
             >
               <ExternalLink className="w-5 h-5" />
-              Accéder à la vue séance
+              Ouvrir la fiche
             </Link>
           </div>
         </div>
@@ -297,11 +335,11 @@ export default function CalendarPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-        <div className="p-8">
+    <main className="min-h-screen bg-[#F8F9FA] p-4 md:p-12">
+      <div className="max-w-[1600px] mx-auto bg-white rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden border border-gray-100">
+        <div className="p-6 md:p-12">
           {renderHeader()}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
             {renderDays()}
             {renderCells()}
           </div>
@@ -313,7 +351,7 @@ export default function CalendarPage() {
       {/* Overlay when side menu is open */}
       {isSideMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-40 transition-opacity duration-500"
           onClick={() => setIsSideMenuOpen(false)}
         />
       )}
