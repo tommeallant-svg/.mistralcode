@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -12,6 +13,7 @@ services:
 
   backend:
     build: ./backend
+    restart: always
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/application_db
     ports:
@@ -21,6 +23,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: always
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8000/api
     ports:
