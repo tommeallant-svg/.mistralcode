@@ -5,6 +5,8 @@ __pycache__/
 venv/
 .venv/
 .env
+*.db
+requirements_local.txt
 
 # Node
 node_modules/
@@ -14,6 +16,7 @@ build/
 dist/
 .DS_Store
 *.log
+.env.local
 
 # Docker
 .dockerignore
