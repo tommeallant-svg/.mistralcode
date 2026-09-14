@@ -19,4 +19,4 @@ dist/
 .env.local
 
 # Docker
-.dockerignore
+.dockerignore_backup
