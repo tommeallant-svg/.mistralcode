@@ -29,3 +29,20 @@ export interface Workout {
   created_at: string;
   updated_at: string;
 }
+
+export interface CatalogInterval {
+  type: string;
+  pace_vma: number; // en %
+  duration?: number;
+  distance?: number;
+  repetitions: number;
+}
+
+export interface CatalogWorkout {
+  id: number;
+  name: string;
+  workout_type: string;
+  category: string;
+  perceived_difficulty: number;
+  scheme: CatalogInterval[];
+}
