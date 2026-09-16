@@ -156,6 +156,13 @@ class PlanGenerator:
         
         return "non_specifique"
 
+    def is_near_race(self, week_idx, total_weeks, phases):
+        weeks_to_race = total_weeks - week_idx
+        affutage = phases["affutage"]
+        # On considère "proche de la course" si on est dans la période d'affûtage + 1 semaine
+        max_affutage = affutage[1] if isinstance(affutage, list) else affutage
+        return weeks_to_race <= max_affutage + 1
+
     def create_workout_for_category(self, category, date, load_factor, phase):
         from ..models.workout import Workout
         

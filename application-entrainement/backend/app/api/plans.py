@@ -26,22 +26,27 @@ def create_plan(plan_in: PlanCreate, db: Session = Depends(get_db), current_user
     
     db_plan = Plan(**plan_in.model_dump(), athlete_id=current_user.id)
     db.add(db_plan)
-    db.commit()
-    db.refresh(db_plan)
     
     # Récupérer le catalogue
     catalog = db.query(CatalogWorkout).all()
     
     # Générer les entraînements
-    generator = PlanGenerator(db, db_plan, catalog)
-    workouts = generator.generate()
-    
-    for workout in workouts:
-        workout.plan_id = db_plan.id
-        db.add(workout)
-    
-    db.commit()
-    return db_plan
+    try:
+        generator = PlanGenerator(db, db_plan, catalog)
+        workouts = generator.generate()
+        
+        db.flush() # Pour avoir l'ID du plan si nécessaire
+        
+        for workout in workouts:
+            workout.plan_id = db_plan.id
+            db.add(workout)
+        
+        db.commit()
+        db.refresh(db_plan)
+        return db_plan
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la génération du plan : {str(e)}")
 
 @router.post("/{plan_id}/archive", response_model=PlanResponse)
 def archive_plan(plan_id: int, archive_data: PlanArchive, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
