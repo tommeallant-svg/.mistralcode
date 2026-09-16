@@ -169,19 +169,28 @@ class PlanGenerator:
             duration = max(30, min(60, duration))
             difficulty = 3
             name = f"Endurance Fondamentale - {duration}min"
-            scheme = [{"type": "Endurance", "duration": duration, "pace": self.format_pace_vma(70), "repetitions": 1}]
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": "Endurance", "duration": duration, "pace_min": self.format_pace_vma(70), "pace_max": self.format_pace_vma(70)}]
+            }]
         
         elif category == "Sortie longue" or category == "Trail":
             duration = int(80 * load_factor)
             difficulty = 5
             name = f"{category} - {duration}min"
-            scheme = [{"type": category, "duration": duration, "pace": self.format_pace_vma(65), "repetitions": 1}]
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": category, "duration": duration, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+            }]
             
         elif category == "Libre":
             duration = int(40 * load_factor)
             difficulty = 2
             name = f"Séance Libre - {duration}min"
-            scheme = [{"type": "Libre", "duration": duration, "repetitions": 1}]
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": "Libre", "duration": duration}]
+            }]
             
         elif category == "Fractionné":
             # Piocher dans le catalogue
@@ -191,25 +200,47 @@ class PlanGenerator:
                 difficulty = 7
                 name = "Fractionné 30/30"
                 scheme = [
-                    {"type": "Echauffement", "duration": 15, "pace": self.format_pace_vma(65), "repetitions": 1},
-                    {"type": "Vite", "duration": 0.5, "pace": self.format_pace_vma(105), "repetitions": 10},
-                    {"type": "Lent", "duration": 0.5, "pace": self.format_pace_vma(60), "repetitions": 10},
-                    {"type": "Retour calme", "duration": 10, "pace": self.format_pace_vma(65), "repetitions": 1}
+                    {
+                        "repetitions": 1,
+                        "intervals": [{"type": "Echauffement", "duration": 15, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+                    },
+                    {
+                        "repetitions": 10,
+                        "intervals": [
+                            {"type": "Vite", "duration": 0.5, "pace_min": self.format_pace_vma(105), "pace_max": self.format_pace_vma(105)},
+                            {"type": "Lent", "duration": 0.5, "pace_min": self.format_pace_vma(60), "pace_max": self.format_pace_vma(60)}
+                        ]
+                    },
+                    {
+                        "repetitions": 1,
+                        "intervals": [{"type": "Retour calme", "duration": 10, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+                    }
                 ]
             else:
                 # TODO: Mieux choisir dans le catalogue selon la phase
                 cat_workout = self.catalog[date.day % len(self.catalog)]
-                duration = sum(s.get("duration", 0) * s.get("repetitions", 1) for s in cat_workout.scheme if isinstance(s, dict))
+                duration = sum(
+                    block.get("repetitions", 1) * sum(i.get("duration", 0) for i in block.get("intervals", []))
+                    for block in cat_workout.scheme if isinstance(block, dict)
+                )
                 difficulty = cat_workout.perceived_difficulty
                 name = cat_workout.name
                 workout_type = cat_workout.workout_type
                 # Convertir les allures du catalogue
                 scheme = []
-                for s in cat_workout.scheme:
-                    new_s = s.copy()
-                    if "pace_vma" in new_s:
-                        new_s["pace"] = self.format_pace_vma(new_s["pace_vma"])
-                    scheme.append(new_s)
+                for block in cat_workout.scheme:
+                    new_block = {"repetitions": block.get("repetitions", 1), "intervals": []}
+                    for interval in block.get("intervals", []):
+                        new_interval = interval.copy()
+                        if "pace_vma_min" in new_interval:
+                            new_interval["pace_min"] = self.format_pace_vma(new_interval["pace_vma_min"])
+                        if "pace_vma_max" in new_interval:
+                            new_interval["pace_max"] = self.format_pace_vma(new_interval["pace_vma_max"])
+                        elif "pace_vma" in new_interval: # Support legacy
+                            new_interval["pace_min"] = self.format_pace_vma(new_interval["pace_vma"])
+                            new_interval["pace_max"] = self.format_pace_vma(new_interval["pace_vma"])
+                        new_block["intervals"].append(new_interval)
+                    scheme.append(new_block)
         
         else:
             return None

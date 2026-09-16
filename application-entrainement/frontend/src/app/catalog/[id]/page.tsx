@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { fetchWithAuth, getAuthUser } from '@/lib/api';
-import { CatalogWorkout, CatalogInterval } from '@/types/workout';
+import { CatalogWorkout, CatalogInterval, CatalogBlock } from '@/types/workout';
 
 export default function CatalogEditPage() {
   const { id } = useParams();
@@ -32,10 +32,21 @@ export default function CatalogEditPage() {
     category: 'Fractionné',
     perceived_difficulty: 5,
     scheme: [
-      { type: 'Echauffement', repetitions: 1, duration: 15, pace_vma: 65 },
-      { type: 'Fraction', repetitions: 10, duration: 1, pace_vma: 100 },
-      { type: 'Récupération', repetitions: 10, duration: 1, pace_vma: 60 },
-      { type: 'Retour calme', repetitions: 1, duration: 10, pace_vma: 65 }
+      { 
+        repetitions: 1, 
+        intervals: [{ type: 'Echauffement', duration: 15, pace_vma_min: 65, pace_vma_max: 65 }] 
+      },
+      { 
+        repetitions: 10, 
+        intervals: [
+          { type: 'Fraction', duration: 1, pace_vma_min: 100, pace_vma_max: 105 },
+          { type: 'Récupération', duration: 1, pace_vma_min: 60, pace_vma_max: 60 }
+        ] 
+      },
+      { 
+        repetitions: 1, 
+        intervals: [{ type: 'Retour calme', duration: 10, pace_vma_min: 65, pace_vma_max: 65 }] 
+      }
     ]
   });
 
@@ -57,6 +68,19 @@ export default function CatalogEditPage() {
         const data = await res.json();
         const found = data.find((w: any) => w.id === parseInt(id as string));
         if (found) {
+          // Migration legacy structure
+          if (found.scheme && found.scheme.length > 0 && !found.scheme[0].intervals) {
+            found.scheme = found.scheme.map((i: any) => ({
+              repetitions: i.repetitions || 1,
+              intervals: [{
+                type: i.type,
+                duration: i.duration,
+                distance: i.distance,
+                pace_vma_min: i.pace_vma || 0,
+                pace_vma_max: i.pace_vma || 0
+              }]
+            }));
+          }
           setWorkout(found);
         } else {
           router.push('/catalog');
@@ -69,22 +93,43 @@ export default function CatalogEditPage() {
     }
   };
 
-  const addInterval = () => {
+  const addBlock = () => {
     setWorkout({
       ...workout,
-      scheme: [...(workout.scheme || []), { type: 'Nouveau', repetitions: 1, duration: 1, pace_vma: 80 }]
+      scheme: [...(workout.scheme || []), { repetitions: 1, intervals: [{ type: 'Nouveau', duration: 1, pace_vma_min: 80, pace_vma_max: 85 }] }]
     });
   };
 
-  const removeInterval = (index: number) => {
+  const removeBlock = (index: number) => {
     const newScheme = [...(workout.scheme || [])];
     newScheme.splice(index, 1);
     setWorkout({ ...workout, scheme: newScheme });
   };
 
-  const updateInterval = (index: number, field: keyof CatalogInterval, value: any) => {
+  const updateBlock = (index: number, field: keyof CatalogBlock, value: any) => {
     const newScheme = [...(workout.scheme || [])];
     newScheme[index] = { ...newScheme[index], [field]: value };
+    setWorkout({ ...workout, scheme: newScheme });
+  };
+
+  const addInterval = (blockIdx: number) => {
+    const newScheme = [...(workout.scheme || [])];
+    newScheme[blockIdx].intervals.push({ type: 'Nouvel intervalle', duration: 1, pace_vma_min: 80, pace_vma_max: 85 });
+    setWorkout({ ...workout, scheme: newScheme });
+  };
+
+  const removeInterval = (blockIdx: number, intervalIdx: number) => {
+    const newScheme = [...(workout.scheme || [])];
+    newScheme[blockIdx].intervals.splice(intervalIdx, 1);
+    if (newScheme[blockIdx].intervals.length === 0) {
+      newScheme.splice(blockIdx, 1);
+    }
+    setWorkout({ ...workout, scheme: newScheme });
+  };
+
+  const updateInterval = (blockIdx: number, intervalIdx: number, updates: Partial<CatalogInterval>) => {
+    const newScheme = [...(workout.scheme || [])];
+    newScheme[blockIdx].intervals[intervalIdx] = { ...newScheme[blockIdx].intervals[intervalIdx], ...updates };
     setWorkout({ ...workout, scheme: newScheme });
   };
 
@@ -201,7 +246,7 @@ export default function CatalogEditPage() {
               <h2 className="text-xl font-black text-black uppercase tracking-tight">Schéma d'entraînement</h2>
             </div>
             <button 
-              onClick={addInterval}
+              onClick={addBlock}
               className="flex items-center gap-2 bg-white text-black border border-gray-200 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
             >
               <Plus className="w-4 h-4" />
@@ -209,85 +254,112 @@ export default function CatalogEditPage() {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {workout.scheme?.map((interval, idx) => (
-              <div key={idx} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 group hover:border-black transition-all relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-2 h-full bg-gray-100 group-hover:bg-black transition-all" />
-                
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                  <div className="md:col-span-3 space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Type de bloc</label>
-                    <input 
-                      type="text" 
-                      value={interval.type} 
-                      onChange={e => updateInterval(idx, 'type', e.target.value)}
-                      className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" /> Répétitions
-                    </label>
+          <div className="space-y-8">
+            {workout.scheme?.map((block, bIdx) => (
+              <div key={bIdx} className="bg-white rounded-[2.5rem] p-8 shadow-sm border-2 border-gray-100 relative">
+                <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-6">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <RotateCcw className="w-4 h-4 text-gray-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Répétitions du bloc</span>
+                    </div>
                     <input 
                       type="number" 
-                      value={interval.repetitions} 
-                      onChange={e => updateInterval(idx, 'repetitions', parseInt(e.target.value))}
-                      className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
+                      value={block.repetitions} 
+                      onChange={e => updateBlock(bIdx, 'repetitions', parseInt(e.target.value))}
+                      className="w-20 bg-gray-50 border-none rounded-xl px-4 py-2 font-black text-black outline-none focus:ring-2 focus:ring-black transition-all"
                     />
                   </div>
-
-                  <div className="md:col-span-3 space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Volume (min ou m)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" step="0.5"
-                        value={interval.duration || interval.distance} 
-                        onChange={e => updateInterval(idx, interval.duration ? 'duration' : 'distance', parseFloat(e.target.value))}
-                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
-                      />
-                      <button 
-                        onClick={() => {
-                          if (interval.duration) {
-                            updateInterval(idx, 'distance', interval.duration);
-                            updateInterval(idx, 'duration', undefined as any);
-                          } else {
-                            updateInterval(idx, 'duration', interval.distance);
-                            updateInterval(idx, 'distance', undefined as any);
-                          }
-                        }}
-                        className="bg-gray-100 px-3 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-gray-200 transition-all"
-                      >
-                        {interval.duration ? 'MIN' : 'M'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-3 space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> Allure (% VMA)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" 
-                        value={interval.pace_vma} 
-                        onChange={e => updateInterval(idx, 'pace_vma', parseInt(e.target.value))}
-                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
-                      />
-                      <span className="font-black text-gray-400">%</span>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-1 flex justify-end">
+                  <div className="flex gap-2">
                     <button 
-                      onClick={() => removeInterval(idx)}
-                      className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      onClick={() => addInterval(bIdx)}
+                      className="flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-white transition-all"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Intervalle
+                    </button>
+                    <button 
+                      onClick={() => removeBlock(bIdx)}
+                      className="p-2 text-gray-300 hover:text-red-500 transition-all"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
+
+                <div className="space-y-4">
+                  {block.intervals.map((interval, iIdx) => (
+                    <div key={iIdx} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-gray-50/50 p-6 rounded-3xl border border-transparent hover:border-gray-200 transition-all">
+                      <div className="md:col-span-3 space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Type</label>
+                        <input 
+                          type="text" 
+                          value={interval.type} 
+                          onChange={e => updateInterval(bIdx, iIdx, { type: e.target.value })}
+                          className="w-full bg-white border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
+                        />
+                      </div>
+
+                      <div className="md:col-span-3 space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Volume
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="number" step="0.5"
+                            value={interval.duration || interval.distance} 
+                            onChange={e => updateInterval(bIdx, iIdx, interval.duration !== undefined ? { duration: parseFloat(e.target.value) } : { distance: parseFloat(e.target.value) })}
+                            className="w-full bg-white border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
+                          />
+                          <button 
+                            onClick={() => {
+                              if (interval.duration !== undefined) {
+                                updateInterval(bIdx, iIdx, { distance: interval.duration, duration: undefined });
+                              } else {
+                                updateInterval(bIdx, iIdx, { duration: interval.distance, distance: undefined });
+                              }
+                            }}
+                            className="bg-white border border-gray-100 px-3 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-gray-100 transition-all"
+                          >
+                            {interval.duration !== undefined ? 'MIN' : 'M'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-5 space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                          <Zap className="w-3 h-3" /> Allure (% VMA Min / Max)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="number" 
+                            value={interval.pace_vma_min} 
+                            onChange={e => updateInterval(bIdx, iIdx, { pace_vma_min: parseInt(e.target.value) })}
+                            className="w-full bg-white border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
+                            placeholder="Min"
+                          />
+                          <span className="text-gray-300 font-black">-</span>
+                          <input 
+                            type="number" 
+                            value={interval.pace_vma_max} 
+                            onChange={e => updateInterval(bIdx, iIdx, { pace_vma_max: parseInt(e.target.value) })}
+                            className="w-full bg-white border-none rounded-xl px-4 py-3 font-bold text-black outline-none focus:ring-2 focus:ring-black transition-all"
+                            placeholder="Max"
+                          />
+                          <span className="font-black text-gray-400">%</span>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-1 flex justify-end pb-1">
+                        <button 
+                          onClick={() => removeInterval(bIdx, iIdx)}
+                          className="p-3 text-gray-300 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

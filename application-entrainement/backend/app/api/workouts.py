@@ -50,11 +50,14 @@ def create_manual_workout(workout: WorkoutManualCreate, db: Session = Depends(ge
         category=workout.workout_type, # By default
         estimated_load=calculate_load(workout.duration_minutes, workout.perceived_difficulty),
         scheme=[{
-            "type": "Course à pied",
-            "duration": workout.duration_minutes,
-            "distance": workout.distance_km,
-            "pace": pace,
-            "repetitions": 1
+            "repetitions": 1,
+            "intervals": [{
+                "type": "Course à pied",
+                "duration": workout.duration_minutes,
+                "distance": workout.distance_km,
+                "pace_min": pace,
+                "pace_max": pace
+            }]
         }]
     )
     db.add(db_workout)

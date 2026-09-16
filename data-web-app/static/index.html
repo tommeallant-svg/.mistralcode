@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road - Gestion de Voyages</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app">
+        
+        <!-- Login Screen (shown when not authenticated) -->
+        <div id="login-screen" class="auth-screen">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <div class="logo-container">
+                        <div class="logo">
+                            <i class="fas fa-road"></i>
+                            <span>road</span>
+                        </div>
+                    </div>
+                    <h1>Bienvenue sur Road</h1>
+                    <p>Gérez vos voyages et séjours en toute simplicité</p>
+                    
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="username">
+                                <i class="fas fa-user"></i>
+                                Utilisateur
+                            </label>
+                            <input type="text" id="username" name="username" placeholder="Entrez votre nom d'utilisateur" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">
+                                <i class="fas fa-lock"></i>
+                                Mot de passe
+                            </label>
+                            <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Se connecter
+                        </button>
+                    </form>
+                    
+                    <div id="login-error" class="error-message"></div>
+                    
+                    <div class="demo-info">
+                        <small>Compte démo : <strong>Paloma</strong> / <strong>laBest</strong></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Container (shown when authenticated) -->
+        <div id="main-app" class="hidden">
+            
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button id="menu-toggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <button id="back-to-home" class="back-button hidden" title="Retour à l'accueil">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="logo">
+                        <i class="fas fa-road"></i>
+                        <span>road</span>
+                    </div>
+                </div>
+                <div class="header-center">
+                    <div id="current-view-title">Mes Voyages</div>
+                </div>
+                <div class="header-right">
+                    <div id="user-info" class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display"></span>
+                    </div>
+                    <button id="logout-btn" class="btn-icon" title="Se déconnecter">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar collapsed">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <i class="fas fa-road"></i>
+                        <span>road</span>
+                    </div>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" id="nav-home" class="nav-item active" data-view="home">
+                        <i class="fas fa-home"></i>
+                        <span>Accueil</span>
+                    </a>
+                    <a href="#" id="nav-new-trip" class="nav-item" data-view="new-trip">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Nouveau Voyage</span>
+                    </a>
+                    <a href="#" id="nav-my-trips" class="nav-item" data-view="home">
+                        <i class="fas fa-suitcase"></i>
+                        <span>Mes Voyages</span>
+                    </a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="sidebar-username"></span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                
+                <!-- Home View - Trip List -->
+                <div id="home-view" class="view active">
+                    <div class="view-header">
+                        <h1>Mes Voyages</h1>
+                        <div class="view-actions">
+                            <button id="filter-btn" class="btn btn-secondary">
+                                <i class="fas fa-filter"></i>
+                                Filtres
+                            </button>
+                            <button id="new-trip-btn" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                Nouveau Voyage
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filters-panel hidden" id="filters-panel">
+                        <div class="filter-group">
+                            <label>Statut</label>
+                            <select id="status-filter">
+                                <option value="">Tous les statuts</option>
+                                <option value="brouillon">Brouillon</option>
+                                <option value="validé">Validé</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button id="apply-filters" class="btn btn-primary">Appliquer</button>
+                            <button id="clear-filters" class="btn btn-secondary">Effacer</button>
+                        </div>
+                    </div>
+                    
+                    <div class="trip-list-container">
+                        <div class="table-container">
+                            <table class="data-table" id="trip-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Statut</th>
+                                        <th>Date de création</th>
+                                        <th>Date de modification</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trip-table-body">
+                                    <!-- Trips will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div id="map-container-home" class="map-container">
+                            <div id="home-map" class="map"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="no-trips" class="empty-state hidden">
+                        <i class="fas fa-suitcase"></i>
+                        <h3>Aucun voyage trouvé</h3>
+                        <p>Commencez par créer votre premier voyage !</p>
+                        <button id="create-first-trip" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Créer un voyage
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trip Detail View -->
+                <div id="trip-detail-view" class="view hidden">
+                    <div class="view-header">
+                        <div class="view-breadcrumb">
+                            <button id="back-to-trips" class="btn-icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="trip-detail-breadcrumb"></span>
+                        </div>
+                        <div class="view-actions">
+                            <button id="edit-trip-btn" class="btn btn-secondary">
+                                <i class="fas fa-edit"></i>
+                                Modifier
+                            </button>
+                            <button id="duplicate-trip-btn" class="btn btn-secondary">
+                                <i class="fas fa-copy"></i>
+                                Dupliquer
+                            </button>
+                            <button id="delete-trip-btn" class="btn btn-danger">
+                                <i class="fas fa-trash"></i>
+                                Supprimer
+                            </button>
+                            <button id="share-trip-btn" class="btn btn-secondary">
+                                <i class="fas fa-share-alt"></i>
+                                Partager
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="trip-detail-container">
+                        <div class="trip-info-card">
+                            <div class="trip-info-header">
+                                <div class="trip-status-badge" id="trip-status-badge">
+                                    <span class="badge"></span>
+                                </div>
+                                <h1 id="trip-detail-name"></h1>
+                                <div class="trip-dates" id="trip-dates">
+                                    <i class="fas fa-calendar"></i>
+                                    <span></span>
+                                </div>
+                                <div class="trip-description" id="trip-detail-description"></div>
+                            </div>
+                            <div class="trip-info-body">
+                                <div class="trip-stats">
+                                    <div class="stat-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span id="trip-location"></span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-list"></i>
+                                        <span id="trip-steps-count">0 étapes</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-calendar-plus"></i>
+                                        <span id="trip-created-date"></span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-calendar-edit"></i>
+                                        <span id="trip-updated-date"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="trip-detail-main">
+                            <!-- Step Filters -->
+                            <div class="step-filters">
+                                <div class="filter-tabs" id="category-filters">
+                                    <button class="filter-tab active" data-category="">
+                                        Tous
+                                    </button>
+                                    <button class="filter-tab" data-category="transport">
+                                        <i class="fas fa-bus"></i>
+                                        Transport
+                                    </button>
+                                    <button class="filter-tab" data-category="hébergement">
+                                        <i class="fas fa-bed"></i>
+                                        Hébergement
+                                    </button>
+                                    <button class="filter-tab" data-category="activité">
+                                        <i class="fas fa-hiking"></i>
+                                        Activité
+                                    </button>
+                                    <button class="filter-tab" data-category="food">
+                                        <i class="fas fa-utensils"></i>
+                                        Food
+                                    </button>
+                                    <button class="filter-tab" data-category="sport">
+                                        <i class="fas fa-running"></i>
+                                        Sport
+                                    </button>
+                                    <button class="filter-tab" data-category="hobbies">
+                                        <i class="fas fa-gamepad"></i>
+                                        Hobbies
+                                    </button>
+                                </div>
+                                <div class="step-filter-actions">
+                                    <button id="add-step-btn" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i>
+                                        Ajouter une étape
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Step Table -->
+                            <div class="step-list-container">
+                                <div class="table-container">
+                                    <table class="data-table" id="step-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 40px;">Ordre</th>
+                                                <th>Nom</th>
+                                                <th>Catégorie</th>
+                                                <th>Type</th>
+                                                <th>Date/Heure Début</th>
+                                                <th>Date/Heure Fin</th>
+                                                <th>Localisation</th>
+                                                <th style="width: 120px;">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="step-table-body">
+                                            <!-- Steps will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="no-steps" class="empty-state hidden">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <h3>Aucune étape trouvée</h3>
+                                <p>Ajoutez votre première étape à ce voyage !</p>
+                            </div>
+                            
+                            <!-- Map Container for Trip Detail -->
+                            <div id="map-container-trip" class="map-container">
+                                <div id="trip-detail-map" class="map"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Chat Section -->
+                    <div id="ai-chat-section" class="ai-chat-section">
+                        <div class="ai-chat-header">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-info">
+                                <h3>Assistant Voyage IA</h3>
+                                <p>Je peux vous aider à planifier votre voyage !</p>
+                            </div>
+                        </div>
+                        <div class="ai-chat-messages" id="ai-chat-messages">
+                            <div class="ai-welcome-message">
+                                <div class="ai-avatar small">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="message-content">
+                                    <p>Bonjour ! Comment puis-je vous aider à planifier votre voyage ?</p>
+                                    <p><small>Vous pouvez me demander : "Trouve un bon restaurant à Paris", "Quelles activités faire à Lyon", etc.</small></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ai-chat-input">
+                            <input type="text" id="ai-message-input" placeholder="Posez votre question..." autofocus>
+                            <button id="ai-send-btn" class="btn-icon">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- AI Suggestions -->
+                        <div id="ai-suggestions" class="ai-suggestions hidden">
+                            <h4>Suggestions</h4>
+                            <div class="suggestions-grid" id="suggestions-grid">
+                                <!-- Suggestions will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New/Edit Trip Modal -->
+                <div id="trip-modal" class="modal hidden">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="trip-modal-title">Nouveau Voyage</h2>
+                            <button class="modal-close" id="close-trip-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="trip-form">
+                            <input type="hidden" id="trip-id-input">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="trip-name">Nom du voyage *</label>
+                                    <input type="text" id="trip-name" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="trip-status">Statut</label>
+                                    <select id="trip-status" name="status">
+                                        <option value="brouillon">Brouillon</option>
+                                        <option value="validé">Validé</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="trip-description">Description</label>
+                                <textarea id="trip-description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="trip-start-date">Date de départ *</label>
+                                    <input type="datetime-local" id="trip-start-date" name="start_date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="trip-end-date">Date de fin *</label>
+                                    <input type="datetime-local" id="trip-end-date" name="end_date" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="trip-latitude">Latitude</label>
+                                    <input type="number" id="trip-latitude" name="latitude" step="0.000001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="trip-longitude">Longitude</label>
+                                    <input type="number" id="trip-longitude" name="longitude" step="0.000001">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" id="cancel-trip-btn">Annuler</button>
+                                <button type="submit" class="btn btn-primary" id="save-trip-btn">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- New/Edit Step Modal -->
+                <div id="step-modal" class="modal hidden">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content modal-lg">
+                        <div class="modal-header">
+                            <h2 id="step-modal-title">Nouvelle Étape</h2>
+                            <button class="modal-close" id="close-step-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="step-form">
+                            <input type="hidden" id="step-id-input">
+                            <input type="hidden" id="step-trip-id-input">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-name">Nom de l'étape *</label>
+                                    <input type="text" id="step-name" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-category">Catégorie *</label>
+                                    <select id="step-category" name="category" required>
+                                        <option value="">Sélectionnez...</option>
+                                        <option value="transport">Transport</option>
+                                        <option value="hébergement">Hébergement</option>
+                                        <option value="activité">Activité</option>
+                                        <option value="food">Food</option>
+                                        <option value="sport">Sport</option>
+                                        <option value="hobbies">Hobbies</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-type">Type</label>
+                                    <select id="step-type" name="type">
+                                        <option value="">Sélectionnez...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-color">Couleur</label>
+                                    <input type="color" id="step-color" name="color" value="#3B82F6">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-start-datetime">Date/Heure Début *</label>
+                                    <input type="datetime-local" id="step-start-datetime" name="start_datetime" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-end-datetime">Date/Heure Fin</label>
+                                    <input type="datetime-local" id="step-end-datetime" name="end_datetime">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-location-start">Localisation Début</label>
+                                    <input type="text" id="step-location-start" name="location_start">
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-location-end">Localisation Fin</label>
+                                    <input type="text" id="step-location-end" name="location_end">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-latitude-start">Latitude Début</label>
+                                    <input type="number" id="step-latitude-start" name="latitude_start" step="0.000001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-longitude-start">Longitude Début</label>
+                                    <input type="number" id="step-longitude-start" name="longitude_start" step="0.000001">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="step-latitude-end">Latitude Fin</label>
+                                    <input type="number" id="step-latitude-end" name="latitude_end" step="0.000001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="step-longitude-end">Longitude Fin</label>
+                                    <input type="number" id="step-longitude-end" name="longitude_end" step="0.000001">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="step-notes">Notes</label>
+                                <textarea id="step-notes" name="notes" rows="3"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" id="cancel-step-btn">Annuler</button>
+                                <button type="submit" class="btn btn-primary" id="save-step-btn">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Confirmation Modal -->
+                <div id="confirm-modal" class="modal hidden">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content modal-sm">
+                        <div class="modal-header">
+                            <h2 id="confirm-title">Confirmation</h2>
+                            <button class="modal-close" id="close-confirm-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="confirm-message"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" id="cancel-confirm-btn">Annuler</button>
+                            <button type="button" class="btn btn-danger" id="confirm-action-btn">Confirmer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toast Notifications -->
+                <div id="toast-container" class="toast-container"></div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden">
+        <div class="spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+    </div>
+
+    <!-- Load configuration first -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    
+    <!-- Load managers -->
+    <script src="js/auth.js"></script>
+    <script src="js/view.js"></script>
+    <script src="js/trips.js"></script>
+    <script src="js/steps.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/events.js"></script>
+    
+    <!-- Load Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main application -->
+    <script src="js/app.js"></script>
+    <script src="js/ai-chat.js"></script>
+</body>
+</html>

@@ -49,10 +49,21 @@ def seed():
             "category": "Fractionné",
             "perceived_difficulty": 8,
             "scheme": [
-                {"type": "Echauffement", "duration": 15, "pace_vma": 65, "repetitions": 1},
-                {"type": "Vite", "duration": 0.5, "pace_vma": 105, "repetitions": 10},
-                {"type": "Lent", "duration": 0.5, "pace_vma": 60, "repetitions": 10},
-                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "duration": 15, "pace_vma_min": 65, "pace_vma_max": 65}]
+                },
+                {
+                    "repetitions": 10,
+                    "intervals": [
+                        {"type": "Vite", "duration": 0.5, "pace_vma_min": 105, "pace_vma_max": 105},
+                        {"type": "Lent", "duration": 0.5, "pace_vma_min": 60, "pace_vma_max": 60}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour calme", "duration": 10, "pace_vma_min": 65, "pace_vma_max": 65}]
+                }
             ]
         },
         {
@@ -61,10 +72,21 @@ def seed():
             "category": "Fractionné",
             "perceived_difficulty": 7,
             "scheme": [
-                {"type": "Echauffement", "duration": 20, "pace_vma": 65, "repetitions": 1},
-                {"type": "Fraction", "duration": 4, "pace_vma": 90, "repetitions": 5},
-                {"type": "Récup", "duration": 2, "pace_vma": 60, "repetitions": 5},
-                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "duration": 20, "pace_vma_min": 65, "pace_vma_max": 65}]
+                },
+                {
+                    "repetitions": 5,
+                    "intervals": [
+                        {"type": "Fraction", "duration": 4, "pace_vma_min": 90, "pace_vma_max": 90},
+                        {"type": "Récup", "duration": 2, "pace_vma_min": 60, "pace_vma_max": 60}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour calme", "duration": 10, "pace_vma_min": 65, "pace_vma_max": 65}]
+                }
             ]
         }
     ]
@@ -85,9 +107,14 @@ def seed():
             "description_long": "L'objectif est de rester sous les 75% de FCM. Relâchement total des épaules et respiration fluide.",
             "date": today - timedelta(days=today.weekday()), # Monday
             "scheme": [
-                {"type": "Echauffement", "pace": "6:00", "duration": 10, "repetitions": 1},
-                {"type": "Corps de séance", "pace": "5:45", "duration": 30, "repetitions": 1},
-                {"type": "Retour au calme", "pace": "6:15", "duration": 5, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [
+                        {"type": "Echauffement", "pace_min": "6:00", "pace_max": "6:00", "duration": 10},
+                        {"type": "Corps de séance", "pace_min": "5:45", "pace_max": "5:45", "duration": 30},
+                        {"type": "Retour au calme", "pace_min": "6:15", "pace_max": "6:15", "duration": 5}
+                    ]
+                }
             ]
         },
         {
@@ -99,10 +126,21 @@ def seed():
             "description_long": "Travailler l'endurance à haute intensité. Le cardio doit monter progressivement vers le seuil.",
             "date": today - timedelta(days=today.weekday() - 2), # Wednesday
             "scheme": [
-                {"type": "Echauffement", "pace": "5:30", "duration": 15, "repetitions": 1},
-                {"type": "Fractionné", "pace": "4:05", "duration": 10, "repetitions": 3},
-                {"type": "Récupération", "pace": "6:30", "duration": 2, "repetitions": 3},
-                {"type": "Retour au calme", "pace": "6:00", "duration": 5, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "pace_min": "5:30", "pace_max": "5:30", "duration": 15}]
+                },
+                {
+                    "repetitions": 3,
+                    "intervals": [
+                        {"type": "Fractionné", "pace_min": "4:05", "pace_max": "4:05", "duration": 10},
+                        {"type": "Récupération", "pace_min": "6:30", "pace_max": "6:30", "duration": 2}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour au calme", "pace_min": "6:00", "pace_max": "6:00", "duration": 5}]
+                }
             ]
         },
         {
@@ -114,10 +152,21 @@ def seed():
             "description_long": "Séance intense pour développer la consommation maximale d'oxygène. Vitesse cible 105% VMA.",
             "date": today - timedelta(days=today.weekday() - 4), # Friday
             "scheme": [
-                {"type": "Echauffement", "pace": "5:45", "duration": 20, "repetitions": 1},
-                {"type": "Sprint", "pace": "3:20", "duration": 0.5, "repetitions": 20},
-                {"type": "Récup", "pace": "7:00", "duration": 0.5, "repetitions": 20},
-                {"type": "Retour au calme", "pace": "6:00", "duration": 10, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "pace_min": "5:45", "pace_max": "5:45", "duration": 20}]
+                },
+                {
+                    "repetitions": 20,
+                    "intervals": [
+                        {"type": "Sprint", "pace_min": "3:20", "pace_max": "3:20", "duration": 0.5},
+                        {"type": "Récup", "pace_min": "7:00", "pace_max": "7:00", "duration": 0.5}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour au calme", "pace_min": "6:00", "pace_max": "6:00", "duration": 10}]
+                }
             ]
         },
         {
@@ -129,7 +178,10 @@ def seed():
             "description_long": "Maintenir une allure stable, tester le ravitaillement pour la prochaine course.",
             "date": today - timedelta(days=today.weekday() - 6), # Sunday
             "scheme": [
-                {"type": "Endurance", "pace": "5:30", "duration": 90, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Endurance", "pace_min": "5:30", "pace_max": "5:30", "duration": 90}]
+                }
             ]
         }
     ]

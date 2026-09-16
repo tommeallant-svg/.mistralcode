@@ -2,10 +2,15 @@ export type WorkoutType = 'Endurance' | 'Tempo' | 'Seuil' | 'VO2 Max' | 'Sprint'
 
 export interface WorkoutInterval {
   type: string;
-  pace: string;
+  pace_min: string;
+  pace_max: string;
   duration?: number;
   distance?: number;
+}
+
+export interface WorkoutBlock {
   repetitions: number;
+  intervals: WorkoutInterval[];
 }
 
 export interface Workout {
@@ -19,7 +24,7 @@ export interface Workout {
   estimated_load: number | null;
   description_short: string;
   description_long: string;
-  scheme: WorkoutInterval[] | null;
+  scheme: WorkoutBlock[] | null;
   date: string;
   is_validated: boolean;
   perceived_difficulty: number | null;
@@ -32,10 +37,15 @@ export interface Workout {
 
 export interface CatalogInterval {
   type: string;
-  pace_vma: number; // en %
+  pace_vma_min: number; // en %
+  pace_vma_max: number; // en %
   duration?: number;
   distance?: number;
+}
+
+export interface CatalogBlock {
   repetitions: number;
+  intervals: CatalogInterval[];
 }
 
 export interface CatalogWorkout {
@@ -44,5 +54,5 @@ export interface CatalogWorkout {
   workout_type: string;
   category: string;
   perceived_difficulty: number;
-  scheme: CatalogInterval[];
+  scheme: CatalogBlock[];
 }
