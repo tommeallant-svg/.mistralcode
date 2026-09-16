@@ -4,22 +4,30 @@ from datetime import datetime
 
 class WorkoutBase(BaseModel):
     workout_type: str
+    category: Optional[str] = None
     name: str
     duration_minutes: int
+    distance_km: Optional[float] = None
     difficulty_level: int = Field(..., ge=1, le=10)
+    estimated_load: Optional[float] = None
     description_short: Optional[str] = None
     description_long: Optional[str] = None
     scheme: Optional[List[Any]] = None
     date: datetime
+    plan_id: Optional[int] = None
+    athlete_id: Optional[int] = None
 
 class WorkoutCreate(WorkoutBase):
     pass
 
 class WorkoutUpdate(BaseModel):
     workout_type: Optional[str] = None
+    category: Optional[str] = None
     name: Optional[str] = None
     duration_minutes: Optional[int] = None
+    distance_km: Optional[float] = None
     difficulty_level: Optional[int] = None
+    estimated_load: Optional[float] = None
     description_short: Optional[str] = None
     description_long: Optional[str] = None
     scheme: Optional[List[Any]] = None
@@ -27,6 +35,15 @@ class WorkoutUpdate(BaseModel):
     is_validated: Optional[bool] = None
     perceived_difficulty: Optional[int] = Field(None, ge=1, le=10)
     athlete_comment: Optional[str] = None
+    plan_id: Optional[int] = None
+
+class WorkoutManualCreate(BaseModel):
+    duration_minutes: int
+    distance_km: float
+    workout_type: str
+    perceived_difficulty: int
+    athlete_comment: Optional[str] = None
+    date: datetime
 
 class WorkoutValidation(BaseModel):
     perceived_difficulty: int = Field(..., ge=1, le=10)

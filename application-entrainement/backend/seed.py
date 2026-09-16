@@ -5,6 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.database import Base, SQLALCHEMY_DATABASE_URL
 from app.models.workout import Workout
+from app.models.user import User
+from app.models.plan import Plan
+from app.models.catalog import CatalogWorkout
+from app.auth import get_password_hash
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -14,8 +18,60 @@ def seed():
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
-    # Clean existing workouts
+    # Clean existing data
     db.query(Workout).delete()
+    db.query(Plan).delete()
+    db.query(User).delete()
+    db.query(CatalogWorkout).delete()
+
+    # Create users
+    coach = User(
+        email="tom.meallant@gmail.com",
+        hashed_password=get_password_hash("ToML2Bégé"),
+        role="coach"
+    )
+    athlete = User(
+        email="paloma.mouyade@gmail.com",
+        hashed_password=get_password_hash("Pal0LaPl0uBéL"),
+        role="athlete"
+    )
+    db.add(coach)
+    db.add(athlete)
+    db.commit()
+    db.refresh(coach)
+    db.refresh(athlete)
+    
+    # Create default catalog workouts
+    catalog_workouts = [
+        {
+            "name": "VMA Courte 30/30",
+            "workout_type": "VO2 Max",
+            "category": "Fractionné",
+            "perceived_difficulty": 8,
+            "scheme": [
+                {"type": "Echauffement", "duration": 15, "pace_vma": 65, "repetitions": 1},
+                {"type": "Vite", "duration": 0.5, "pace_vma": 105, "repetitions": 10},
+                {"type": "Lent", "duration": 0.5, "pace_vma": 60, "repetitions": 10},
+                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+            ]
+        },
+        {
+            "name": "VMA Longue 1000m",
+            "workout_type": "Seuil",
+            "category": "Fractionné",
+            "perceived_difficulty": 7,
+            "scheme": [
+                {"type": "Echauffement", "duration": 20, "pace_vma": 65, "repetitions": 1},
+                {"type": "Fraction", "duration": 4, "pace_vma": 90, "repetitions": 5},
+                {"type": "Récup", "duration": 2, "pace_vma": 60, "repetitions": 5},
+                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+            ]
+        }
+    ]
+    for cw_data in catalog_workouts:
+        cw = CatalogWorkout(**cw_data)
+        db.add(cw)
+    db.commit()
     
     today = datetime.now().replace(hour=10, minute=0, second=0, microsecond=0)
     
@@ -80,6 +136,7 @@ def seed():
     
     for w_data in workouts:
         workout = Workout(**w_data)
+        workout.athlete_id = athlete.id
         db.add(workout)
     
     db.commit()

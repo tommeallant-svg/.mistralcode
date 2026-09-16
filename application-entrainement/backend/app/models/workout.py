@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, ForeignKey, Float
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
 
@@ -6,10 +7,13 @@ class Workout(Base):
     __tablename__ = "workouts"
 
     id = Column(Integer, primary_key=True, index=True)
-    workout_type = Column(String, index=True)  # Endurance, Tempo, Seuil, VO2 Max, Sprint
+    workout_type = Column(String, index=True)  # Endurance, Tempo, Seuil, VO2 Max, Sprint, Libre
+    category = Column(String, index=True) # Endurance, Libre, Fractionné, Sortie Longue, Trail
     name = Column(String, index=True)
     duration_minutes = Column(Integer)
+    distance_km = Column(Float, nullable=True)
     difficulty_level = Column(Integer)  # 1 to 10
+    estimated_load = Column(Float, nullable=True)
     description_short = Column(String)
     description_long = Column(Text)
     
@@ -23,5 +27,11 @@ class Workout(Base):
     perceived_difficulty = Column(Integer, nullable=True)
     athlete_comment = Column(Text, nullable=True)
     
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=True)
+    plan = relationship("Plan", back_populates="workouts")
+    
+    athlete_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    athlete = relationship("User")
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

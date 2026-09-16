@@ -15,7 +15,9 @@ import {
   addWeeks, 
   subWeeks,
   parseISO,
-  setDay
+  setDay,
+  isAfter,
+  isBefore
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
@@ -29,36 +31,66 @@ import {
   Clock,
   ArrowRightLeft,
   Activity,
-  AlignLeft
+  AlignLeft,
+  Plus,
+  LogOut,
+  Users,
+  Dumbbell
 } from 'lucide-react';
 import Link from 'next/link';
 import { Workout } from '@/types/workout';
+import { useRouter } from 'next/navigation';
+import { fetchWithAuth, getAuthToken, clearAuthToken, getAuthUser } from '@/lib/api';
 
 export default function CalendarPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
 
   useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    const authUser = getAuthUser();
+    setUser(authUser);
     fetchWorkouts();
-  }, []);
+    fetchCurrentPlan();
+  }, [router]);
 
   const fetchWorkouts = async () => {
     try {
-      const response = await fetch('/api/workouts');
-      const data = await response.json();
-      if (Array.isArray(data)) {
+      const response = await fetchWithAuth('/api/workouts');
+      if (response.ok) {
+        const data = await response.json();
         setWorkouts(data);
-      } else {
-        console.error('Data is not an array:', data);
-        setWorkouts([]);
       }
     } catch (error) {
       console.error('Failed to fetch workouts:', error);
-      setWorkouts([]);
     }
+  };
+
+  const fetchCurrentPlan = async () => {
+    try {
+      const response = await fetchWithAuth('/api/plans/current');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentPlan(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch plan:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    clearAuthToken();
+    router.push('/login');
   };
 
   const next = () => {
@@ -108,6 +140,52 @@ export default function CalendarPage() {
       </div>
       
       <div className="flex flex-wrap items-center gap-4">
+        {user?.role === 'coach' && (
+          <Link
+            href="/coach"
+            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+          >
+            <Users className="w-4 h-4" />
+            <span>Vue Entraîneur</span>
+          </Link>
+        )}
+
+        {currentPlan ? (
+          <div className="flex items-center gap-2 bg-green-50 text-green-700 px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest border border-green-100">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Plan: {currentPlan.race_name}</span>
+          </div>
+        ) : (
+          <Link
+            href="/plans/new"
+            className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Créer un Plan</span>
+          </Link>
+        )}
+
+        <Link
+          href="/workouts/new"
+          className="group flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-50 transition-all border-2 border-black relative"
+          title="Ajouter une séance manuellement"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Séance Manuelle</span>
+          {/* Tooltip on hover */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Ajouter une séance manuellement
+          </div>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 bg-gray-100 text-gray-600 px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Déconnexion</span>
+        </button>
+
         <div className="flex items-center bg-gray-100 rounded-2xl p-1.5 border border-gray-200">
           <button 
             onClick={() => setView('month')}
@@ -249,7 +327,7 @@ export default function CalendarPage() {
               <p className="text-gray-400 font-bold mt-4 uppercase text-xs tracking-widest">{format(parseISO(selectedWorkout.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl">
                 <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Durée</div>
                 <div className="text-2xl font-black flex items-center gap-2">
@@ -258,10 +336,17 @@ export default function CalendarPage() {
                 </div>
               </div>
               <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl">
-                <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Intensité</div>
+                <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Difficulté</div>
                 <div className="text-2xl font-black flex items-center gap-2">
                   <Activity className="w-5 h-5 text-black" />
                   {selectedWorkout.difficulty_level}<span className="text-sm">/10</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl">
+                <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Charge</div>
+                <div className="text-2xl font-black flex items-center gap-2">
+                  <Dumbbell className="w-5 h-5 text-black" />
+                  {selectedWorkout.estimated_load?.toFixed(0)}
                 </div>
               </div>
             </div>
