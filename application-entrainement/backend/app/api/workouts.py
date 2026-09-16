@@ -7,7 +7,7 @@ from ..schemas.workout import WorkoutCreate, WorkoutResponse, WorkoutUpdate, Wor
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
-@router.post("/", response_model=WorkoutResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=WorkoutResponse, status_code=status.HTTP_201_CREATED)
 def create_workout(workout: WorkoutCreate, db: Session = Depends(get_db)):
     db_workout = Workout(**workout.model_dump())
     db.add(db_workout)
@@ -15,7 +15,7 @@ def create_workout(workout: WorkoutCreate, db: Session = Depends(get_db)):
     db.refresh(db_workout)
     return db_workout
 
-@router.get("/", response_model=List[WorkoutResponse])
+@router.get("", response_model=List[WorkoutResponse])
 def read_workouts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(Workout).order_by(Workout.date.asc()).offset(skip).limit(limit).all()
 
