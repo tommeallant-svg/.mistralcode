@@ -64,3 +64,13 @@ def archive_plan(plan_id: int, archive_data: PlanArchive, db: Session = Depends(
     db.commit()
     db.refresh(db_plan)
     return db_plan
+
+@router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_plan(plan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_plan = db.query(Plan).filter(Plan.id == plan_id, Plan.athlete_id == current_user.id).first()
+    if not db_plan:
+        raise HTTPException(status_code=404, detail="Plan non trouvé")
+    
+    db.delete(db_plan)
+    db.commit()
+    return None

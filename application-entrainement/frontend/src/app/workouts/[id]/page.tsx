@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   Send,
   Calendar,
-  RotateCcw
+  RotateCcw,
+  Dumbbell
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -118,16 +119,21 @@ export default function WorkoutDetailPage() {
               </div>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <div className="bg-black text-white px-10 py-8 rounded-[2.5rem] flex flex-col items-center justify-center min-w-[140px] shadow-2xl shadow-black/20">
                 <Clock className="w-8 h-8 mb-4 text-yellow-400" />
                 <span className="text-4xl font-black leading-none">{workout.duration_minutes}</span>
                 <span className="text-[10px] uppercase font-black tracking-widest mt-2 opacity-50">Minutes</span>
               </div>
-              <div className="bg-gray-100 text-black px-10 py-8 rounded-[2.5rem] flex flex-col items-center justify-center min-w-[140px] border border-gray-200">
+              <div className="bg-white text-black px-10 py-8 rounded-[2.5rem] flex flex-col items-center justify-center min-w-[140px] border border-gray-200">
                 <Activity className="w-8 h-8 mb-4 text-black" />
                 <span className="text-4xl font-black leading-none">{workout.difficulty_level}</span>
                 <span className="text-[10px] uppercase font-black tracking-widest mt-2 opacity-50">Intensité</span>
+              </div>
+              <div className="bg-gray-50 text-black px-10 py-8 rounded-[2.5rem] flex flex-col items-center justify-center min-w-[140px] border border-gray-200">
+                <Dumbbell className="w-8 h-8 mb-4 text-black" />
+                <span className="text-4xl font-black leading-none">{workout.estimated_load?.toFixed(0)}</span>
+                <span className="text-[10px] uppercase font-black tracking-widest mt-2 opacity-50">Charge</span>
               </div>
             </div>
           </div>

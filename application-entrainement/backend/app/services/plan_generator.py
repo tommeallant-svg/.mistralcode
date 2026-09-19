@@ -92,7 +92,7 @@ class PlanGenerator:
         if not self.plan.training_days:
             base_assignment = DEFAULT_ASSIGNMENTS[self.plan.goal_type][self.plan.sessions_per_week]
             self.plan.training_days = list(base_assignment.keys())
-        else:
+        elif isinstance(self.plan.training_days, list):
             base_assignment = DEFAULT_ASSIGNMENTS[self.plan.goal_type][self.plan.sessions_per_week]
             categories = list(base_assignment.values())
             days = sorted(self.plan.training_days)
@@ -100,6 +100,9 @@ class PlanGenerator:
             for i, day in enumerate(days):
                 new_assignment[day] = categories[i % len(categories)]
             base_assignment = new_assignment
+        else:
+            # Format Dict[int, str]
+            base_assignment = {int(k): v for k, v in self.plan.training_days.items()}
 
         current_load = 0
         last_non_rest_load = 0
@@ -169,6 +172,7 @@ class PlanGenerator:
         duration = 45 # Default
         difficulty = 3
         workout_type = category
+        description = None
         
         if category == "Endurance":
             duration = int(45 * load_factor)
@@ -176,6 +180,7 @@ class PlanGenerator:
             duration = max(30, min(60, duration))
             difficulty = 3
             name = f"Endurance Fondamentale - {duration}min"
+            description = "Le footing de la semaine, un moment pour faire du bien à votre corps, prenez le temps de vider votre tête."
             scheme = [{
                 "repetitions": 1,
                 "intervals": [{"type": "Endurance", "duration": duration, "pace_min": self.format_pace_vma(70), "pace_max": self.format_pace_vma(70)}]
@@ -183,6 +188,9 @@ class PlanGenerator:
         
         elif category == "Sortie longue" or category == "Trail":
             duration = int(80 * load_factor)
+            if category == "Sortie longue":
+                duration = (duration // 5) * 5
+                description = "C’est la sortie longue de la semaine, hydratez-vous bien, prenez votre temps, faites un parcours que vous appréciez et essayez de garder un cardio bas"
             difficulty = 5
             name = f"{category} - {duration}min"
             scheme = [{
@@ -192,8 +200,10 @@ class PlanGenerator:
             
         elif category == "Libre":
             duration = int(40 * load_factor)
+            duration = (duration // 5) * 5
             difficulty = 2
             name = f"Séance Libre - {duration}min"
+            description = "C’est le moment détente, faites ce que vous voulez, sans regarder la montre. Essayez tout de même de ne pas générer trop de fatigue. Excellente occasion pour courir avec des amis"
             scheme = [{
                 "repetitions": 1,
                 "intervals": [{"type": "Libre", "duration": duration}]
@@ -261,6 +271,7 @@ class PlanGenerator:
             date=date,
             scheme=scheme,
             athlete_id=self.plan.athlete_id,
+            description_long=description,
             estimated_load=duration + duration * difficulty / 5
         )
 
