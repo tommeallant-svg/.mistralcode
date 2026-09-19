@@ -5,6 +5,7 @@ class CatalogWorkoutBase(BaseModel):
     name: str
     workout_type: str
     category: str
+    description: Optional[str] = None
     perceived_difficulty: int
     scheme: List[Any]
 
@@ -15,6 +16,7 @@ class CatalogWorkoutUpdate(BaseModel):
     name: Optional[str] = None
     workout_type: Optional[str] = None
     category: Optional[str] = None
+    description: Optional[str] = None
     perceived_difficulty: Optional[int] = None
     scheme: Optional[List[Any]] = None
 

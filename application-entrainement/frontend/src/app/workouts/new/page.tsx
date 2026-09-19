@@ -11,6 +11,7 @@ import {
   Star, 
   MessageSquare 
 } from 'lucide-react';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -36,7 +37,7 @@ export default function NewManualWorkoutPage() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          date: new Date(formData.date).toISOString()
+          date: format(new Date(formData.date), "yyyy-MM-dd'T'HH:mm:ss")
         })
       });
       if (res.ok) {
@@ -98,6 +99,7 @@ export default function NewManualWorkoutPage() {
                   <Clock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
                   <input
                     type="number"
+                    step={['Libre', 'Sortie Longue', 'Sortie longue'].includes(formData.workout_type) ? 5 : 1}
                     className="w-full pl-14 pr-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-black focus:bg-white outline-none transition-all font-bold"
                     value={formData.duration_minutes}
                     onChange={e => setFormData({...formData, duration_minutes: parseInt(e.target.value)})}

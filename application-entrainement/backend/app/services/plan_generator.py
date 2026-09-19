@@ -92,7 +92,7 @@ class PlanGenerator:
         if not self.plan.training_days:
             base_assignment = DEFAULT_ASSIGNMENTS[self.plan.goal_type][self.plan.sessions_per_week]
             self.plan.training_days = list(base_assignment.keys())
-        else:
+        elif isinstance(self.plan.training_days, list):
             base_assignment = DEFAULT_ASSIGNMENTS[self.plan.goal_type][self.plan.sessions_per_week]
             categories = list(base_assignment.values())
             days = sorted(self.plan.training_days)
@@ -100,6 +100,9 @@ class PlanGenerator:
             for i, day in enumerate(days):
                 new_assignment[day] = categories[i % len(categories)]
             base_assignment = new_assignment
+        else:
+            # Format Dict[int, str]
+            base_assignment = {int(k): v for k, v in self.plan.training_days.items()}
 
         current_load = 0
         last_non_rest_load = 0
@@ -156,12 +159,20 @@ class PlanGenerator:
         
         return "non_specifique"
 
+    def is_near_race(self, week_idx, total_weeks, phases):
+        weeks_to_race = total_weeks - week_idx
+        affutage = phases["affutage"]
+        # On considère "proche de la course" si on est dans la période d'affûtage + 1 semaine
+        max_affutage = affutage[1] if isinstance(affutage, list) else affutage
+        return weeks_to_race <= max_affutage + 1
+
     def create_workout_for_category(self, category, date, load_factor, phase):
         from ..models.workout import Workout
         
         duration = 45 # Default
         difficulty = 3
         workout_type = category
+        description = None
         
         if category == "Endurance":
             duration = int(45 * load_factor)
@@ -169,19 +180,34 @@ class PlanGenerator:
             duration = max(30, min(60, duration))
             difficulty = 3
             name = f"Endurance Fondamentale - {duration}min"
-            scheme = [{"type": "Endurance", "duration": duration, "pace": self.format_pace_vma(70), "repetitions": 1}]
+            description = "Le footing de la semaine, un moment pour faire du bien à votre corps, prenez le temps de vider votre tête."
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": "Endurance", "duration": duration, "pace_min": self.format_pace_vma(70), "pace_max": self.format_pace_vma(70)}]
+            }]
         
         elif category == "Sortie longue" or category == "Trail":
             duration = int(80 * load_factor)
+            if category == "Sortie longue":
+                duration = (duration // 5) * 5
+                description = "C’est la sortie longue de la semaine, hydratez-vous bien, prenez votre temps, faites un parcours que vous appréciez et essayez de garder un cardio bas"
             difficulty = 5
             name = f"{category} - {duration}min"
-            scheme = [{"type": category, "duration": duration, "pace": self.format_pace_vma(65), "repetitions": 1}]
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": category, "duration": duration, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+            }]
             
         elif category == "Libre":
             duration = int(40 * load_factor)
+            duration = (duration // 5) * 5
             difficulty = 2
             name = f"Séance Libre - {duration}min"
-            scheme = [{"type": "Libre", "duration": duration, "repetitions": 1}]
+            description = "C’est le moment détente, faites ce que vous voulez, sans regarder la montre. Essayez tout de même de ne pas générer trop de fatigue. Excellente occasion pour courir avec des amis"
+            scheme = [{
+                "repetitions": 1,
+                "intervals": [{"type": "Libre", "duration": duration}]
+            }]
             
         elif category == "Fractionné":
             # Piocher dans le catalogue
@@ -190,26 +216,50 @@ class PlanGenerator:
                 duration = 50
                 difficulty = 7
                 name = "Fractionné 30/30"
+                description = "Séance de VMA courte : 30 secondes d'effort à 105% VMA suivies de 30 secondes de récupération."
                 scheme = [
-                    {"type": "Echauffement", "duration": 15, "pace": self.format_pace_vma(65), "repetitions": 1},
-                    {"type": "Vite", "duration": 0.5, "pace": self.format_pace_vma(105), "repetitions": 10},
-                    {"type": "Lent", "duration": 0.5, "pace": self.format_pace_vma(60), "repetitions": 10},
-                    {"type": "Retour calme", "duration": 10, "pace": self.format_pace_vma(65), "repetitions": 1}
+                    {
+                        "repetitions": 1,
+                        "intervals": [{"type": "Echauffement", "duration": 15, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+                    },
+                    {
+                        "repetitions": 10,
+                        "intervals": [
+                            {"type": "Vite", "duration": 0.5, "pace_min": self.format_pace_vma(105), "pace_max": self.format_pace_vma(105)},
+                            {"type": "Lent", "duration": 0.5, "pace_min": self.format_pace_vma(60), "pace_max": self.format_pace_vma(60)}
+                        ]
+                    },
+                    {
+                        "repetitions": 1,
+                        "intervals": [{"type": "Retour calme", "duration": 10, "pace_min": self.format_pace_vma(65), "pace_max": self.format_pace_vma(65)}]
+                    }
                 ]
             else:
                 # TODO: Mieux choisir dans le catalogue selon la phase
                 cat_workout = self.catalog[date.day % len(self.catalog)]
-                duration = sum(s.get("duration", 0) * s.get("repetitions", 1) for s in cat_workout.scheme if isinstance(s, dict))
+                duration = sum(
+                    block.get("repetitions", 1) * sum(i.get("duration", 0) for i in block.get("intervals", []))
+                    for block in cat_workout.scheme if isinstance(block, dict)
+                )
                 difficulty = cat_workout.perceived_difficulty
                 name = cat_workout.name
+                description = getattr(cat_workout, 'description', None)
                 workout_type = cat_workout.workout_type
                 # Convertir les allures du catalogue
                 scheme = []
-                for s in cat_workout.scheme:
-                    new_s = s.copy()
-                    if "pace_vma" in new_s:
-                        new_s["pace"] = self.format_pace_vma(new_s["pace_vma"])
-                    scheme.append(new_s)
+                for block in cat_workout.scheme:
+                    new_block = {"repetitions": block.get("repetitions", 1), "intervals": []}
+                    for interval in block.get("intervals", []):
+                        new_interval = interval.copy()
+                        if "pace_vma_min" in new_interval:
+                            new_interval["pace_min"] = self.format_pace_vma(new_interval["pace_vma_min"])
+                        if "pace_vma_max" in new_interval:
+                            new_interval["pace_max"] = self.format_pace_vma(new_interval["pace_vma_max"])
+                        elif "pace_vma" in new_interval: # Support legacy
+                            new_interval["pace_min"] = self.format_pace_vma(new_interval["pace_vma"])
+                            new_interval["pace_max"] = self.format_pace_vma(new_interval["pace_vma"])
+                        new_block["intervals"].append(new_interval)
+                    scheme.append(new_block)
         
         else:
             return None
@@ -223,6 +273,7 @@ class PlanGenerator:
             date=date,
             scheme=scheme,
             athlete_id=self.plan.athlete_id,
+            description=description,
             estimated_load=duration + duration * difficulty / 5
         )
 

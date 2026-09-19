@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   format, 
   startOfMonth, 
@@ -39,11 +39,98 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Workout } from '@/types/workout';
-import { useRouter } from 'next/navigation';
-import { fetchWithAuth, getAuthToken, clearAuthToken, getAuthUser } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { 
+  fetchWithAuth, 
+  getAuthToken, 
+  clearAuthToken, 
+  getAuthUser 
+} from '@/lib/api';
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+} from '@dnd-kit/core';
 
-export default function CalendarPage() {
+function DraggableWorkout({ workout, onClick }: { workout: Workout, onClick: () => void }) {
+  const {attributes, listeners, setNodeRef, transform} = useDraggable({
+    id: `workout-${workout.id}`,
+    data: { workout }
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 100,
+  } : undefined;
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`p-3 rounded-xl cursor-grab active:cursor-grabbing text-xs border-2 transition-all hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${
+        workout.is_validated 
+          ? 'bg-white border-green-500 text-black' 
+          : 'bg-black border-black text-white'
+      }`}
+    >
+      <div className="font-black uppercase tracking-tighter flex items-center justify-between mb-1">
+        <span className="truncate">{workout.workout_type}</span>
+        {workout.is_validated && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+      </div>
+      <div className={`truncate font-bold opacity-80 ${workout.is_validated ? 'text-gray-600' : 'text-gray-300'}`}>
+        {workout.name}
+      </div>
+      <div className="flex items-center gap-1 mt-2 font-black uppercase text-[9px] tracking-widest">
+        <Clock className="w-3 h-3" />
+        {workout.duration_minutes} MIN
+      </div>
+    </div>
+  );
+}
+
+function DayDroppable({ day, children, isToday, isNotCurrentMonth }: any) {
+  const {setNodeRef, isOver} = useDroppable({
+    id: day.toISOString(),
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`min-h-[160px] p-3 border-r border-t border-gray-200 transition-all ${
+        isNotCurrentMonth ? 'bg-gray-50/50 text-gray-300' : 'bg-white'
+      } ${isToday ? 'bg-yellow-50/50' : ''} ${isOver ? 'bg-blue-50 ring-2 ring-blue-200 ring-inset shadow-inner' : ''}`}
+    >
+      <div className="flex justify-between items-start mb-2">
+        <span className={`text-sm font-black tracking-tighter ${
+          isToday 
+            ? 'bg-black text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg' 
+            : isNotCurrentMonth ? 'text-gray-300' : 'text-gray-400'
+        }`}>
+          {format(day, 'd')}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CalendarPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const athleteId = searchParams.get('athleteId');
+  
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -51,6 +138,14 @@ export default function CalendarPage() {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<any>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   useEffect(() => {
     const token = getAuthToken();
@@ -60,13 +155,14 @@ export default function CalendarPage() {
     }
     const authUser = getAuthUser();
     setUser(authUser);
-    fetchWorkouts();
-    fetchCurrentPlan();
-  }, [router]);
+    fetchWorkouts(athleteId);
+    fetchCurrentPlan(athleteId);
+  }, [router, athleteId]);
 
-  const fetchWorkouts = async () => {
+  const fetchWorkouts = async (id?: string | null) => {
     try {
-      const response = await fetchWithAuth('/api/workouts');
+      const url = id ? `/api/workouts?athlete_id=${id}` : '/api/workouts';
+      const response = await fetchWithAuth(url);
       if (response.ok) {
         const data = await response.json();
         setWorkouts(data);
@@ -76,9 +172,10 @@ export default function CalendarPage() {
     }
   };
 
-  const fetchCurrentPlan = async () => {
+  const fetchCurrentPlan = async (id?: string | null) => {
     try {
-      const response = await fetchWithAuth('/api/plans/current');
+      const url = id ? `/api/plans/current?athlete_id=${id}` : '/api/plans/current';
+      const response = await fetchWithAuth(url);
       if (response.ok) {
         const data = await response.json();
         setCurrentPlan(data);
@@ -91,6 +188,52 @@ export default function CalendarPage() {
   const handleLogout = () => {
     clearAuthToken();
     router.push('/login');
+  };
+
+  const handleDeletePlan = async () => {
+    if (!currentPlan) return;
+    const msg = athleteId 
+      ? "Êtes-vous sûr de vouloir supprimer le plan d'entraînement actif de cet athlète ? Toutes les séances non validées seront supprimées."
+      : "Êtes-vous sûr de vouloir supprimer votre plan d'entraînement actif ? Toutes les séances non validées seront supprimées.";
+    
+    if (!confirm(msg)) return;
+    
+    try {
+      const response = await fetchWithAuth(`/api/plans/${currentPlan.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setCurrentPlan(null);
+        fetchWorkouts(athleteId);
+      } else {
+        alert("Erreur lors de la suppression du plan");
+      }
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+    }
+  };
+
+  const calculateWeeklyLoad = () => {
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekWorkouts = (Array.isArray(workouts) ? workouts : []).filter(w => {
+      const d = parseISO(w.date);
+      return d >= weekStart && d <= weekEnd;
+    });
+    return weekWorkouts.reduce((sum, w) => sum + (w.estimated_load || 0), 0);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    
+    if (over) {
+      const workout = active.data.current?.workout;
+      const newDate = new Date(over.id as string);
+      if (workout && !isSameDay(parseISO(workout.date), newDate)) {
+        shiftWorkout(workout, newDate);
+      }
+    }
   };
 
   const next = () => {
@@ -113,10 +256,10 @@ export default function CalendarPage() {
       const response = await fetchWithAuth(`/api/workouts/${workout.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newDate.toISOString() }),
+        body: JSON.stringify({ date: format(newDate, "yyyy-MM-dd'T'HH:mm:ss") }),
       });
       if (response.ok) {
-        fetchWorkouts();
+        fetchWorkouts(athleteId);
         if (selectedWorkout?.id === workout.id) {
           const updated = await response.json();
           setSelectedWorkout(updated);
@@ -130,8 +273,13 @@ export default function CalendarPage() {
   const renderHeader = () => (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
       <div className="flex flex-col gap-2">
-        <h1 className="text-5xl font-black text-black tracking-tighter uppercase leading-none">
+        <h1 className="text-5xl font-black text-black tracking-tighter uppercase leading-none flex items-center gap-4">
           {format(currentDate, 'MMMM yyyy', { locale: fr })}
+          {athleteId && (
+            <span className="text-blue-600 text-2xl bg-blue-50 px-4 py-1 rounded-2xl border border-blue-100">
+              Vue Athlète
+            </span>
+          )}
         </h1>
         <div className="flex items-center gap-2 text-gray-400 font-bold uppercase text-xs tracking-widest">
           <CalendarIcon className="w-4 h-4" />
@@ -151,13 +299,23 @@ export default function CalendarPage() {
         )}
 
         {currentPlan ? (
-          <div className="flex items-center gap-2 bg-green-50 text-green-700 px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest border border-green-100">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Plan: {currentPlan.race_name}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-green-50 text-green-700 px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest border border-green-100">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Plan: {currentPlan.race_name}</span>
+            </div>
+            <button
+              onClick={handleDeletePlan}
+              className="flex items-center gap-2 bg-red-50 text-red-600 px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-red-100 transition-all border border-red-100"
+              title="Supprimer le plan"
+            >
+              <X className="w-4 h-4" />
+              <span>Supprimer</span>
+            </button>
           </div>
         ) : (
           <Link
-            href="/plans/new"
+            href={athleteId ? `/plans/new?athleteId=${athleteId}` : "/plans/new"}
             className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
           >
             <Plus className="w-4 h-4" />
@@ -216,6 +374,22 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
+      
+      {view === 'week' && (
+        <div className="mt-8 flex items-center gap-4 bg-black text-white px-8 py-6 rounded-[2rem] shadow-2xl w-fit">
+          <div className="flex items-center gap-4 border-r border-white/20 pr-6">
+            <Activity className="w-8 h-8 text-yellow-400" />
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Charge Hebdomadaire</div>
+              <div className="text-3xl font-black tracking-tighter">{calculateWeeklyLoad().toFixed(0)}</div>
+            </div>
+          </div>
+          <div className="pl-2">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Objectif</div>
+            <div className="text-sm font-bold opacity-80">{currentPlan?.race_name || 'Maintien'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -241,57 +415,32 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
-      <div className="grid grid-cols-7 auto-rows-fr border-l border-b border-gray-200">
-        {days.map((day, idx) => {
-          const dayWorkouts = (Array.isArray(workouts) ? workouts : []).filter(w => isSameDay(parseISO(w.date), day));
-          const isToday = isSameDay(day, new Date());
-          const isNotCurrentMonth = !isSameMonth(day, monthStart) && view === 'month';
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-7 auto-rows-fr border-l border-b border-gray-200">
+          {days.map((day, idx) => {
+            const dayWorkouts = (Array.isArray(workouts) ? workouts : []).filter(w => isSameDay(parseISO(w.date), day));
+            const isToday = isSameDay(day, new Date());
+            const isNotCurrentMonth = !isSameMonth(day, monthStart) && view === 'month';
 
-          return (
-            <div 
-              key={idx}
-              className={`min-h-[160px] p-3 border-r border-t border-gray-200 transition-all ${
-                isNotCurrentMonth ? 'bg-gray-50/50 text-gray-300' : 'bg-white'
-              } ${isToday ? 'bg-yellow-50/50' : ''}`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <span className={`text-sm font-black tracking-tighter ${
-                  isToday 
-                    ? 'bg-black text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg' 
-                    : isNotCurrentMonth ? 'text-gray-300' : 'text-gray-400'
-                }`}>
-                  {format(day, 'd')}
-                </span>
-              </div>
-              <div className="space-y-2">
+            return (
+              <DayDroppable 
+                key={idx} 
+                day={day} 
+                isToday={isToday} 
+                isNotCurrentMonth={isNotCurrentMonth}
+              >
                 {dayWorkouts.map(workout => (
-                  <div 
-                    key={workout.id}
-                    onClick={() => handleWorkoutClick(workout)}
-                    className={`p-3 rounded-xl cursor-pointer text-xs border-2 transition-all hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${
-                      workout.is_validated 
-                        ? 'bg-white border-green-500 text-black' 
-                        : 'bg-black border-black text-white'
-                    }`}
-                  >
-                    <div className="font-black uppercase tracking-tighter flex items-center justify-between mb-1">
-                      <span className="truncate">{workout.workout_type}</span>
-                      {workout.is_validated && <CheckCircle2 className="w-3 h-3 text-green-500" />}
-                    </div>
-                    <div className={`truncate font-bold opacity-80 ${workout.is_validated ? 'text-gray-600' : 'text-gray-300'}`}>
-                      {workout.name}
-                    </div>
-                    <div className="flex items-center gap-1 mt-2 font-black uppercase text-[9px] tracking-widest">
-                      <Clock className="w-3 h-3" />
-                      {workout.duration_minutes} MIN
-                    </div>
-                  </div>
+                  <DraggableWorkout 
+                    key={workout.id} 
+                    workout={workout} 
+                    onClick={() => handleWorkoutClick(workout)} 
+                  />
                 ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </DayDroppable>
+            );
+          })}
+        </div>
+      </DndContext>
     );
   };
 
@@ -357,32 +506,8 @@ export default function CalendarPage() {
                 Description
               </h4>
               <p className="text-gray-600 text-sm leading-relaxed font-medium bg-gray-50 p-6 rounded-3xl border border-gray-100 italic">
-                "{selectedWorkout.description_short}"
+                "{selectedWorkout.description}"
               </p>
-            </div>
-
-            <div>
-              <h4 className="font-black text-xs text-black uppercase tracking-widest mb-4">Déplacer la séance</h4>
-              <div className="grid grid-cols-7 gap-2">
-                {weekDays.map(day => {
-                  const isCurrent = isSameDay(day, parseISO(selectedWorkout.date));
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      onClick={() => shiftWorkout(selectedWorkout, day)}
-                      disabled={isCurrent}
-                      className={`h-12 flex flex-col items-center justify-center rounded-xl transition-all ${
-                        isCurrent
-                          ? 'bg-black text-white shadow-lg scale-110 z-10'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
-                      }`}
-                    >
-                      <span className="text-[10px] font-black uppercase">{format(day, 'EEE', { locale: fr }).substring(0, 3)}</span>
-                      <span className="text-xs font-black">{format(day, 'd')}</span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             {selectedWorkout.is_validated && (
@@ -441,5 +566,13 @@ export default function CalendarPage() {
         />
       )}
     </main>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-gray-400">Chargement...</div>}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

@@ -47,24 +47,48 @@ def seed():
             "name": "VMA Courte 30/30",
             "workout_type": "VO2 Max",
             "category": "Fractionné",
+            "description": "Séance de VMA courte pour développer la puissance aérobie. Alternance de 30 secondes d'effort intense et 30 secondes de récupération active.",
             "perceived_difficulty": 8,
             "scheme": [
-                {"type": "Echauffement", "duration": 15, "pace_vma": 65, "repetitions": 1},
-                {"type": "Vite", "duration": 0.5, "pace_vma": 105, "repetitions": 10},
-                {"type": "Lent", "duration": 0.5, "pace_vma": 60, "repetitions": 10},
-                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "duration": 15, "pace_vma_min": 65, "pace_vma_max": 65}]
+                },
+                {
+                    "repetitions": 10,
+                    "intervals": [
+                        {"type": "Vite", "duration": 0.5, "pace_vma_min": 105, "pace_vma_max": 105},
+                        {"type": "Lent", "duration": 0.5, "pace_vma_min": 60, "pace_vma_max": 60}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour calme", "duration": 10, "pace_vma_min": 65, "pace_vma_max": 65}]
+                }
             ]
         },
         {
             "name": "VMA Longue 1000m",
             "workout_type": "Seuil",
             "category": "Fractionné",
+            "description": "Travail au seuil anaérobie sur des répétitions de 1000m. Idéal pour améliorer sa vitesse de croisière sur 10km ou semi-marathon.",
             "perceived_difficulty": 7,
             "scheme": [
-                {"type": "Echauffement", "duration": 20, "pace_vma": 65, "repetitions": 1},
-                {"type": "Fraction", "duration": 4, "pace_vma": 90, "repetitions": 5},
-                {"type": "Récup", "duration": 2, "pace_vma": 60, "repetitions": 5},
-                {"type": "Retour calme", "duration": 10, "pace_vma": 65, "repetitions": 1}
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Echauffement", "duration": 20, "pace_vma_min": 65, "pace_vma_max": 65}]
+                },
+                {
+                    "repetitions": 5,
+                    "intervals": [
+                        {"type": "Fraction", "duration": 4, "pace_vma_min": 90, "pace_vma_max": 90},
+                        {"type": "Récup", "duration": 2, "pace_vma_min": 60, "pace_vma_max": 60}
+                    ]
+                },
+                {
+                    "repetitions": 1,
+                    "intervals": [{"type": "Retour calme", "duration": 10, "pace_vma_min": 65, "pace_vma_max": 65}]
+                }
             ]
         }
     ]
@@ -72,75 +96,7 @@ def seed():
         cw = CatalogWorkout(**cw_data)
         db.add(cw)
     db.commit()
-    
-    today = datetime.now().replace(hour=10, minute=0, second=0, microsecond=0)
-    
-    workouts = [
-        {
-            "workout_type": "Endurance",
-            "name": "Footing de récupération",
-            "duration_minutes": 45,
-            "difficulty_level": 3,
-            "description_short": "Footing lent en zone 2 pour récupérer.",
-            "description_long": "L'objectif est de rester sous les 75% de FCM. Relâchement total des épaules et respiration fluide.",
-            "date": today - timedelta(days=today.weekday()), # Monday
-            "scheme": [
-                {"type": "Echauffement", "pace": "6:00", "duration": 10, "repetitions": 1},
-                {"type": "Corps de séance", "pace": "5:45", "duration": 30, "repetitions": 1},
-                {"type": "Retour au calme", "pace": "6:15", "duration": 5, "repetitions": 1}
-            ]
-        },
-        {
-            "workout_type": "Seuil",
-            "name": "Blocs au seuil anaérobie",
-            "duration_minutes": 60,
-            "difficulty_level": 7,
-            "description_short": "3 x 10 minutes au seuil, récup 2 min.",
-            "description_long": "Travailler l'endurance à haute intensité. Le cardio doit monter progressivement vers le seuil.",
-            "date": today - timedelta(days=today.weekday() - 2), # Wednesday
-            "scheme": [
-                {"type": "Echauffement", "pace": "5:30", "duration": 15, "repetitions": 1},
-                {"type": "Fractionné", "pace": "4:05", "duration": 10, "repetitions": 3},
-                {"type": "Récupération", "pace": "6:30", "duration": 2, "repetitions": 3},
-                {"type": "Retour au calme", "pace": "6:00", "duration": 5, "repetitions": 1}
-            ]
-        },
-        {
-            "workout_type": "VO2 Max",
-            "name": "VMA Courte 30/30",
-            "duration_minutes": 50,
-            "difficulty_level": 9,
-            "description_short": "2 séries de 10 x (30s vite / 30s lent).",
-            "description_long": "Séance intense pour développer la consommation maximale d'oxygène. Vitesse cible 105% VMA.",
-            "date": today - timedelta(days=today.weekday() - 4), # Friday
-            "scheme": [
-                {"type": "Echauffement", "pace": "5:45", "duration": 20, "repetitions": 1},
-                {"type": "Sprint", "pace": "3:20", "duration": 0.5, "repetitions": 20},
-                {"type": "Récup", "pace": "7:00", "duration": 0.5, "repetitions": 20},
-                {"type": "Retour au calme", "pace": "6:00", "duration": 10, "repetitions": 1}
-            ]
-        },
-        {
-            "workout_type": "Endurance",
-            "name": "Sortie Longue",
-            "duration_minutes": 90,
-            "difficulty_level": 5,
-            "description_short": "Sortie plaisir en forêt.",
-            "description_long": "Maintenir une allure stable, tester le ravitaillement pour la prochaine course.",
-            "date": today - timedelta(days=today.weekday() - 6), # Sunday
-            "scheme": [
-                {"type": "Endurance", "pace": "5:30", "duration": 90, "repetitions": 1}
-            ]
-        }
-    ]
-    
-    for w_data in workouts:
-        workout = Workout(**w_data)
-        workout.athlete_id = athlete.id
-        db.add(workout)
-    
-    db.commit()
-    print("Database seeded!")
+    print("Database seeded (users and catalog only)!")
 
 if __name__ == "__main__":
     seed()

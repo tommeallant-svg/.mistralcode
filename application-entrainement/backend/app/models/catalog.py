@@ -8,5 +8,6 @@ class CatalogWorkout(Base):
     name = Column(String, index=True)
     workout_type = Column(String) # tempo, VO2Max, etc.
     category = Column(String) # Fractionné
+    description = Column(String, nullable=True)
     perceived_difficulty = Column(Integer)
     scheme = Column(JSON) # allures en % VMA

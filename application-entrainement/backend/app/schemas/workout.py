@@ -1,5 +1,5 @@
 from typing import Optional, List, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
 class WorkoutBase(BaseModel):
@@ -10,12 +10,19 @@ class WorkoutBase(BaseModel):
     distance_km: Optional[float] = None
     difficulty_level: int = Field(..., ge=1, le=10)
     estimated_load: Optional[float] = None
-    description_short: Optional[str] = None
-    description_long: Optional[str] = None
+    description: Optional[str] = None
     scheme: Optional[List[Any]] = None
     date: datetime
     plan_id: Optional[int] = None
     athlete_id: Optional[int] = None
+
+    @field_validator('duration_minutes')
+    @classmethod
+    def validate_duration(cls, v: int, info: Any) -> int:
+        workout_type = info.data.get('workout_type')
+        if workout_type and workout_type.lower() in ["sortie longue", "libre"] and v % 5 != 0:
+            raise ValueError("La durée doit être un multiple de 5 minutes pour les sorties longues et libres")
+        return v
 
 class WorkoutCreate(WorkoutBase):
     pass
@@ -28,8 +35,7 @@ class WorkoutUpdate(BaseModel):
     distance_km: Optional[float] = None
     difficulty_level: Optional[int] = None
     estimated_load: Optional[float] = None
-    description_short: Optional[str] = None
-    description_long: Optional[str] = None
+    description: Optional[str] = None
     scheme: Optional[List[Any]] = None
     date: Optional[datetime] = None
     is_validated: Optional[bool] = None
