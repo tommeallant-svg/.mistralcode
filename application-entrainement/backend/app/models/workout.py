@@ -14,8 +14,7 @@ class Workout(Base):
     distance_km = Column(Float, nullable=True)
     difficulty_level = Column(Integer)  # 1 to 10
     estimated_load = Column(Float, nullable=True)
-    description_short = Column(String)
-    description_long = Column(Text)
+    description = Column(Text)
     
     # Training scheme stored as JSON
     # Structure example: [{"type": "interval", "pace": "4:00", "duration": 5, "distance": 1.25, "repetitions": 1}]

@@ -22,8 +22,7 @@ export interface Workout {
   distance_km: number | null;
   difficulty_level: number;
   estimated_load: number | null;
-  description_short: string;
-  description_long: string;
+  description: string;
   scheme: WorkoutBlock[] | null;
   date: string;
   is_validated: boolean;

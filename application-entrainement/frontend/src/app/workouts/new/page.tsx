@@ -11,6 +11,7 @@ import {
   Star, 
   MessageSquare 
 } from 'lucide-react';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -36,7 +37,7 @@ export default function NewManualWorkoutPage() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          date: new Date(formData.date).toISOString()
+          date: format(new Date(formData.date), "yyyy-MM-dd'T'HH:mm:ss")
         })
       });
       if (res.ok) {

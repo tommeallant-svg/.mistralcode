@@ -145,7 +145,7 @@ export default function WorkoutDetailPage() {
                 Objectifs & Description
               </h4>
               <p className="text-gray-800 text-2xl md:text-3xl leading-snug font-medium italic tracking-tight">
-                "{workout.description_long || workout.description_short}"
+                "{workout.description}"
               </p>
             </div>
 

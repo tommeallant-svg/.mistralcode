@@ -13,6 +13,7 @@ import {
   Dumbbell,
   Plus
 } from 'lucide-react';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 import {
@@ -215,8 +216,8 @@ function NewPlanPageContent() {
         body: JSON.stringify({
           ...formData,
           athlete_id: athleteId ? parseInt(athleteId) : null,
-          race_date: new Date(formData.race_date).toISOString(),
-          start_date: new Date(formData.start_date).toISOString(),
+          race_date: format(new Date(formData.race_date), "yyyy-MM-dd'T'12:00:00"),
+          start_date: format(new Date(formData.start_date), "yyyy-MM-dd'T'00:00:00"),
         })
       });
       if (res.ok) {

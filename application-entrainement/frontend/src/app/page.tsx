@@ -256,7 +256,7 @@ function CalendarPageContent() {
       const response = await fetchWithAuth(`/api/workouts/${workout.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newDate.toISOString() }),
+        body: JSON.stringify({ date: format(newDate, "yyyy-MM-dd'T'HH:mm:ss") }),
       });
       if (response.ok) {
         fetchWorkouts(athleteId);
@@ -506,32 +506,8 @@ function CalendarPageContent() {
                 Description
               </h4>
               <p className="text-gray-600 text-sm leading-relaxed font-medium bg-gray-50 p-6 rounded-3xl border border-gray-100 italic">
-                "{selectedWorkout.description_short}"
+                "{selectedWorkout.description}"
               </p>
-            </div>
-
-            <div>
-              <h4 className="font-black text-xs text-black uppercase tracking-widest mb-4">Déplacer la séance</h4>
-              <div className="grid grid-cols-7 gap-2">
-                {weekDays.map(day => {
-                  const isCurrent = isSameDay(day, parseISO(selectedWorkout.date));
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      onClick={() => shiftWorkout(selectedWorkout, day)}
-                      disabled={isCurrent}
-                      className={`h-12 flex flex-col items-center justify-center rounded-xl transition-all ${
-                        isCurrent
-                          ? 'bg-black text-white shadow-lg scale-110 z-10'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
-                      }`}
-                    >
-                      <span className="text-[10px] font-black uppercase">{format(day, 'EEE', { locale: fr }).substring(0, 3)}</span>
-                      <span className="text-xs font-black">{format(day, 'd')}</span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             {selectedWorkout.is_validated && (

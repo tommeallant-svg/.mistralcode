@@ -10,8 +10,7 @@ class WorkoutBase(BaseModel):
     distance_km: Optional[float] = None
     difficulty_level: int = Field(..., ge=1, le=10)
     estimated_load: Optional[float] = None
-    description_short: Optional[str] = None
-    description_long: Optional[str] = None
+    description: Optional[str] = None
     scheme: Optional[List[Any]] = None
     date: datetime
     plan_id: Optional[int] = None
@@ -36,8 +35,7 @@ class WorkoutUpdate(BaseModel):
     distance_km: Optional[float] = None
     difficulty_level: Optional[int] = None
     estimated_load: Optional[float] = None
-    description_short: Optional[str] = None
-    description_long: Optional[str] = None
+    description: Optional[str] = None
     scheme: Optional[List[Any]] = None
     date: Optional[datetime] = None
     is_validated: Optional[bool] = None

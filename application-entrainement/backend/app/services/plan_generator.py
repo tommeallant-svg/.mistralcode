@@ -271,7 +271,7 @@ class PlanGenerator:
             date=date,
             scheme=scheme,
             athlete_id=self.plan.athlete_id,
-            description_long=description,
+            description=description,
             estimated_load=duration + duration * difficulty / 5
         )
 
