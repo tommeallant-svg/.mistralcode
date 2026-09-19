@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ChevronLeft, 
   Save, 
@@ -10,16 +10,125 @@ import {
   Calendar as CalendarIcon,
   Timer,
   Trophy,
-  Dumbbell
+  Dumbbell,
+  Plus
 } from 'lucide-react';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
+import {
+  DndContext,
+  DragEndEvent,
+  useDraggable,
+  useDroppable,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 
 const GOAL_TYPES = ['plaisir', 'maintien', 'mixte', 'intensité', 'trail'];
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-export default function NewPlanPage() {
+const DEFAULT_ASSIGNMENTS: Record<string, Record<number, Record<number, string>>> = {
+  "plaisir": {
+    1: { 2: "Libre" },
+    2: { 2: "Endurance", 5: "Libre" },
+    3: { 1: "Endurance", 3: "Libre", 5: "Sortie longue" },
+    4: { 1: "Libre", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Libre", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Libre", 2: "Endurance", 3: "Libre", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Libre", 2: "Endurance", 3: "Libre", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "maintien": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Libre", 5: "Endurance", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "mixte": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "intensité": {
+    1: { 2: "Fractionné" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+    5: { 0: "Fractionné", 1: "Endurance", 3: "Fractionné", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+  },
+  "trail": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Trail" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Trail" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Trail" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Trail" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Fractionné", 5: "Endurance", 6: "Trail" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Trail" },
+  }
+};
+
+function DraggableDayWorkout({ type, dayIdx }: { type: string, dayIdx: number }) {
+  const {attributes, listeners, setNodeRef, transform, isDragging} = useDraggable({
+    id: `day-workout-${dayIdx}`,
+    data: { type, fromDayIdx: dayIdx }
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 100,
+  } : undefined;
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter w-full text-center relative cursor-grab active:cursor-grabbing hover:bg-gray-800 transition-all shadow-md ${isDragging ? 'opacity-50' : ''}`}
+    >
+      {type}
+    </div>
+  );
+}
+
+function DaySlot({ dayIdx, type }: { dayIdx: number, type: string | null }) {
+  const {setNodeRef, isOver} = useDroppable({
+    id: `day-${dayIdx}`,
+    data: { dayIdx }
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`relative min-h-[100px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-2 transition-all ${
+        isOver ? 'bg-blue-50 border-blue-400 border-solid scale-105' : 
+        type ? 'bg-white border-black border-solid shadow-sm' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{DAYS[dayIdx].slice(0, 3)}</span>
+      {type && (
+        <DraggableDayWorkout type={type} dayIdx={dayIdx} />
+      )}
+      {!type && <Plus className="w-4 h-4 text-gray-200" />}
+    </div>
+  );
+}
+
+function NewPlanPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const athleteId = searchParams.get('athleteId');
+  
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [existingPlan, setExistingPlan] = useState<any>(null);
@@ -30,16 +139,97 @@ export default function NewPlanPage() {
     race_date: '',
     race_distance: 10,
     race_estimated_time: '',
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: '',
     sessions_per_week: 3,
     goal_type: 'maintien',
-    training_days: [1, 3, 6], // Par défaut Mardi, Jeudi, Dimanche
+    training_days: {} as Record<number, string>,
     estimated_vma: 5.0 // 5:00/km par défaut
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  useEffect(() => {
+    // Set default start_date to next Monday
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day === 0 ? 1 : 8 - day);
+    const nextMonday = new Date(now);
+    nextMonday.setDate(now.getDate() + (day === 1 ? 0 : diff));
+    setFormData(prev => ({...prev, start_date: nextMonday.toISOString().split('T')[0]}));
+  }, []);
+
+  // Update training days automatically when goal or sessions per week change
+  useEffect(() => {
+    const defaults = DEFAULT_ASSIGNMENTS[formData.goal_type]?.[formData.sessions_per_week];
+    if (defaults) {
+      setFormData(prev => ({
+        ...prev,
+        training_days: { ...defaults }
+      }));
+    }
+  }, [formData.goal_type, formData.sessions_per_week]);
+
+  const handleStartDateChange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return;
+    
+    if (date.getDay() !== 1) {
+      alert("Le plan doit impérativement commencer un lundi. La date va être ajustée.");
+      const day = date.getDay();
+      const diff = (day === 0 ? 1 : 8 - day);
+      const nextMonday = new Date(date);
+      nextMonday.setDate(date.getDate() + (day === 1 ? 0 : diff));
+      setFormData({...formData, start_date: nextMonday.toISOString().split('T')[0]});
+    } else {
+      setFormData({...formData, start_date: dateStr});
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    
+    if (over) {
+      const fromDayIdx = active.data.current?.fromDayIdx;
+      const toDayIdx = over.data.current?.dayIdx;
+      const type = active.data.current?.type;
+      
+      if (fromDayIdx !== undefined && toDayIdx !== undefined && fromDayIdx !== toDayIdx) {
+        setFormData(prev => {
+          const newDays = {...prev.training_days};
+          const targetType = newDays[toDayIdx];
+          
+          // Swap if there is already a workout at target, otherwise just move
+          newDays[toDayIdx] = type;
+          if (targetType) {
+            newDays[fromDayIdx] = targetType;
+          } else {
+            delete newDays[fromDayIdx];
+          }
+          
+          return {...prev, training_days: newDays};
+        });
+      }
+    }
+  };
+
+  const removeDay = (dayIdx: number) => {
+    setFormData(prev => {
+      const newDays = {...prev.training_days};
+      delete newDays[dayIdx];
+      return {...prev, training_days: newDays};
+    });
+  };
+
   useEffect(() => {
     const checkExistingPlan = async () => {
-      const res = await fetchWithAuth('/api/plans/current');
+      const url = athleteId ? `/api/plans/current?athlete_id=${athleteId}` : '/api/plans/current';
+      const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = await res.json();
         if (data) {
@@ -49,7 +239,7 @@ export default function NewPlanPage() {
       }
     };
     checkExistingPlan();
-  }, []);
+  }, [athleteId]);
 
   const handleArchive = async () => {
     if (!cancellationComment) {
@@ -81,12 +271,13 @@ export default function NewPlanPage() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          race_date: new Date(formData.race_date).toISOString(),
-          start_date: new Date(formData.start_date).toISOString(),
+          athlete_id: athleteId ? parseInt(athleteId) : null,
+          race_date: format(new Date(formData.race_date), "yyyy-MM-dd'T'12:00:00"),
+          start_date: format(new Date(formData.start_date), "yyyy-MM-dd'T'00:00:00"),
         })
       });
       if (res.ok) {
-        router.push('/');
+        router.push(athleteId ? `/?athleteId=${athleteId}` : '/');
       } else {
         const err = await res.json();
         alert(err.detail || 'Erreur lors de la création du plan');
@@ -98,14 +289,6 @@ export default function NewPlanPage() {
     }
   };
 
-  const toggleDay = (idx: number) => {
-    setFormData(prev => {
-      const newDays = prev.training_days.includes(idx)
-        ? prev.training_days.filter(d => d !== idx)
-        : [...prev.training_days, idx].sort((a, b) => a - b);
-      return { ...prev, training_days: newDays };
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -155,7 +338,7 @@ export default function NewPlanPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30 px-6 py-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors font-black uppercase text-xs tracking-widest">
+          <Link href={athleteId ? `/?athleteId=${athleteId}` : "/"} className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors font-black uppercase text-xs tracking-widest">
             <ChevronLeft className="w-5 h-5" />
             <span>Retour</span>
           </Link>
@@ -234,7 +417,7 @@ export default function NewPlanPage() {
                   required
                   className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-black focus:bg-white outline-none transition-all font-bold"
                   value={formData.start_date}
-                  onChange={e => setFormData({...formData, start_date: e.target.value})}
+                  onChange={e => handleStartDateChange(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -265,20 +448,27 @@ export default function NewPlanPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1 block">Jours d'entraînement</label>
-              <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-                {DAYS.map((day, idx) => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleDay(idx)}
-                    className={`py-4 px-1 rounded-2xl font-black uppercase text-[10px] tracking-tighter transition-all border-2 ${formData.training_days.includes(idx) ? 'bg-black text-white border-black shadow-lg' : 'bg-gray-50 text-gray-400 border-transparent hover:border-gray-200'}`}
-                  >
-                    {day.slice(0, 3)}
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-6">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1 block">Jours d'entraînement (Déplacez les séances)</label>
+              
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <div className="space-y-6">
+                  {/* Weekly Calendar Drop Zones */}
+                  <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
+                    {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+                      <DaySlot 
+                        key={idx} 
+                        dayIdx={idx} 
+                        type={formData.training_days[idx] || null} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </DndContext>
+              
+              <p className="text-[10px] text-gray-400 italic font-medium">
+                Les types de séances sont fixés par votre objectif. Vous pouvez les déplacer d'un jour à l'autre par drag & drop.
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -312,5 +502,13 @@ export default function NewPlanPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewPlanPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-gray-400">Chargement...</div>}>
+      <NewPlanPageContent />
+    </Suspense>
   );
 }

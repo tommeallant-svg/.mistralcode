@@ -24,7 +24,7 @@ DEFAULT_ASSIGNMENTS = {
         7: {0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: ("Libre", "Fractionné"), 4: "Endurance", 5: "Libre", 6: "Sortie longue"},
     },
     "mixte": {
-        1: None, # Pas disponible
+        1: {2: "Endurance"},
         2: {2: "Endurance", 5: "Fractionné"},
         3: {1: "Endurance", 3: "Fractionné", 5: "Sortie longue"},
         4: {1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Sortie longue"},
@@ -33,8 +33,8 @@ DEFAULT_ASSIGNMENTS = {
         7: {0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue"},
     },
     "intensité": {
-        1: None,
-        2: None,
+        1: {2: "Fractionné"},
+        2: {2: "Endurance", 5: "Fractionné"},
         3: {1: "Endurance", 3: "Fractionné", 5: "Sortie longue"},
         4: {1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Sortie longue"},
         5: {0: "Fractionné", 1: "Endurance", 3: "Fractionné", 5: "Libre", 6: "Sortie longue"},
@@ -126,7 +126,7 @@ class PlanGenerator:
             
             for day_offset, category_choice in base_assignment.items():
                 category = category_choice
-                if isinstance(category_choice, tuple):
+                if isinstance(category_choice, (tuple, list)):
                     # Alternance une semaine sur deux
                     category = category_choice[week_idx % 2]
                 
