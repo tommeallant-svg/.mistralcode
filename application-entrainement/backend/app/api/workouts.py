@@ -81,7 +81,11 @@ def read_workouts(skip: int = 0, limit: int = 100, athlete_id: Optional[int] = N
 
 @router.get("/{workout_id}", response_model=WorkoutResponse)
 def read_workout(workout_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_workout = db.query(Workout).filter(Workout.id == workout_id, Workout.athlete_id == current_user.id).first()
+    query = db.query(Workout).filter(Workout.id == workout_id)
+    if current_user.role != "coach":
+        query = query.filter(Workout.athlete_id == current_user.id)
+        
+    db_workout = query.first()
     if db_workout is None:
         raise HTTPException(status_code=404, detail="Workout not found")
     return db_workout
@@ -109,7 +113,11 @@ def update_workout(workout_id: int, workout: WorkoutUpdate, db: Session = Depend
 
 @router.post("/{workout_id}/validate", response_model=WorkoutResponse)
 def validate_workout(workout_id: int, validation: WorkoutValidation, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_workout = db.query(Workout).filter(Workout.id == workout_id, Workout.athlete_id == current_user.id).first()
+    query = db.query(Workout).filter(Workout.id == workout_id)
+    if current_user.role != "coach":
+        query = query.filter(Workout.athlete_id == current_user.id)
+        
+    db_workout = query.first()
     if db_workout is None:
         raise HTTPException(status_code=404, detail="Workout not found")
     
@@ -123,7 +131,11 @@ def validate_workout(workout_id: int, validation: WorkoutValidation, db: Session
 
 @router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_workout(workout_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_workout = db.query(Workout).filter(Workout.id == workout_id, Workout.athlete_id == current_user.id).first()
+    query = db.query(Workout).filter(Workout.id == workout_id)
+    if current_user.role != "coach":
+        query = query.filter(Workout.athlete_id == current_user.id)
+        
+    db_workout = query.first()
     if db_workout is None:
         raise HTTPException(status_code=404, detail="Workout not found")
     db.delete(db_workout)

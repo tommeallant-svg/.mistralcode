@@ -216,6 +216,7 @@ class PlanGenerator:
                 duration = 50
                 difficulty = 7
                 name = "Fractionné 30/30"
+                description = "Séance de VMA courte : 30 secondes d'effort à 105% VMA suivies de 30 secondes de récupération."
                 scheme = [
                     {
                         "repetitions": 1,
@@ -242,6 +243,7 @@ class PlanGenerator:
                 )
                 difficulty = cat_workout.perceived_difficulty
                 name = cat_workout.name
+                description = getattr(cat_workout, 'description', None)
                 workout_type = cat_workout.workout_type
                 # Convertir les allures du catalogue
                 scheme = []

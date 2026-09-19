@@ -47,6 +47,7 @@ def seed():
             "name": "VMA Courte 30/30",
             "workout_type": "VO2 Max",
             "category": "Fractionné",
+            "description": "Séance de VMA courte pour développer la puissance aérobie. Alternance de 30 secondes d'effort intense et 30 secondes de récupération active.",
             "perceived_difficulty": 8,
             "scheme": [
                 {
@@ -70,6 +71,7 @@ def seed():
             "name": "VMA Longue 1000m",
             "workout_type": "Seuil",
             "category": "Fractionné",
+            "description": "Travail au seuil anaérobie sur des répétitions de 1000m. Idéal pour améliorer sa vitesse de croisière sur 10km ou semi-marathon.",
             "perceived_difficulty": 7,
             "scheme": [
                 {

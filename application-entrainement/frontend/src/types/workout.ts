@@ -52,6 +52,7 @@ export interface CatalogWorkout {
   name: string;
   workout_type: string;
   category: string;
+  description?: string;
   perceived_difficulty: number;
   scheme: CatalogBlock[];
 }
