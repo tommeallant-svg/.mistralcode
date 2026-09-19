@@ -9,12 +9,14 @@ import {
   Activity, 
   CheckCircle2, 
   Send,
-  Calendar
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
-import { Workout, WorkoutInterval } from '@/types/workout';
+import { Workout, WorkoutInterval, WorkoutBlock } from '@/types/workout';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function WorkoutDetailPage() {
   const { id } = useParams();
@@ -31,7 +33,7 @@ export default function WorkoutDetailPage() {
 
   const fetchWorkout = async () => {
     try {
-      const response = await fetch(`/api/workouts/${id}`);
+      const response = await fetchWithAuth(`/api/workouts/${id}`);
       if (!response.ok) throw new Error('Workout not found');
       const data = await response.json();
       setWorkout(data);
@@ -50,7 +52,7 @@ export default function WorkoutDetailPage() {
     e.preventDefault();
     setIsValidating(true);
     try {
-      const response = await fetch(`/api/workouts/${id}/validate`, {
+      const response = await fetchWithAuth(`/api/workouts/${id}/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -147,27 +149,44 @@ export default function WorkoutDetailPage() {
                   <div className="w-2 h-2 bg-yellow-400 rounded-full" />
                   Structure de l'exercice
                 </h4>
-                <div className="grid gap-4">
-                  {workout.scheme.map((interval: WorkoutInterval, idx: number) => (
-                    <div key={idx} className="bg-gray-50 p-8 rounded-[2rem] border border-gray-100 flex flex-col md:flex-row md:items-center justify-between group hover:border-black transition-all">
-                      <div className="flex items-center gap-8 mb-4 md:mb-0">
-                        <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl text-black border border-gray-200 shadow-sm group-hover:bg-black group-hover:text-white group-hover:border-black transition-all">
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <div className="font-black uppercase tracking-tighter text-xl mb-1">{interval.type}</div>
-                          <div className="text-gray-400 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2">
-                            <span className="w-2 h-[2px] bg-yellow-400" />
-                            Allure: {interval.pace}
+                <div className="space-y-6">
+                  {workout.scheme.map((block: WorkoutBlock, bIdx: number) => (
+                    <div key={bIdx} className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 relative group overflow-hidden">
+                      <div className="absolute top-0 left-0 w-2 h-full bg-yellow-400 opacity-20 group-hover:opacity-100 transition-all" />
+                      
+                      {block.repetitions > 1 && (
+                        <div className="flex items-center gap-2 mb-6 ml-2">
+                          <div className="bg-black text-white p-2 rounded-xl">
+                            <RotateCcw className="w-4 h-4" />
                           </div>
+                          <span className="font-black text-[10px] uppercase tracking-[0.2em] text-black">Répéter {block.repetitions} fois</span>
                         </div>
-                      </div>
-                      <div className="flex md:block items-end justify-between border-t md:border-t-0 border-gray-200 pt-4 md:pt-0">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 md:hidden">Volume</span>
-                        <div className="text-4xl font-black tracking-tighter text-black">
-                          {interval.repetitions}x {interval.duration || interval.distance}
-                          <span className="text-sm ml-2 opacity-30 font-bold uppercase">{interval.duration ? 'min' : 'm'}</span>
-                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {block.intervals.map((interval, iIdx) => (
+                          <div key={iIdx} className="bg-white p-8 rounded-[2rem] border border-gray-100 flex flex-col md:flex-row md:items-center justify-between group/item hover:border-black transition-all shadow-sm">
+                            <div className="flex items-center gap-8 mb-4 md:mb-0">
+                              <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-black border border-gray-100 group-hover/item:bg-black group-hover/item:text-white transition-all">
+                                {iIdx + 1}
+                              </div>
+                              <div>
+                                <div className="font-black uppercase tracking-tighter text-xl mb-1">{interval.type}</div>
+                                <div className="text-gray-400 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                  <span className="w-2 h-[2px] bg-yellow-400" />
+                                  Allure: {interval.pace_min} {interval.pace_max !== interval.pace_min ? `- ${interval.pace_max}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex md:block items-end justify-between border-t md:border-t-0 border-gray-200 pt-4 md:pt-0">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 md:hidden">Volume</span>
+                              <div className="text-4xl font-black tracking-tighter text-black">
+                                {interval.duration || interval.distance}
+                                <span className="text-sm ml-2 opacity-30 font-bold uppercase">{interval.duration !== undefined ? 'min' : 'm'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
