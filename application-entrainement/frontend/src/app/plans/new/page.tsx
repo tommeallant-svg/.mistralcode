@@ -28,12 +28,59 @@ import {
 
 const GOAL_TYPES = ['plaisir', 'maintien', 'mixte', 'intensité', 'trail'];
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-const WORKOUT_CATEGORIES = ['Endurance', 'Libre', 'Sortie longue', 'Fractionné', 'Trail'];
 
-function DraggableWorkoutType({ type }: { type: string }) {
-  const {attributes, listeners, setNodeRef, transform} = useDraggable({
-    id: `type-${type}`,
-    data: { type }
+const DEFAULT_ASSIGNMENTS: Record<string, Record<number, Record<number, string>>> = {
+  "plaisir": {
+    1: { 2: "Libre" },
+    2: { 2: "Endurance", 5: "Libre" },
+    3: { 1: "Endurance", 3: "Libre", 5: "Sortie longue" },
+    4: { 1: "Libre", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Libre", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Libre", 2: "Endurance", 3: "Libre", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Libre", 2: "Endurance", 3: "Libre", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "maintien": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Libre", 5: "Endurance", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "mixte": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Fractionné", 5: "Endurance", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+  },
+  "intensité": {
+    1: { 2: "Fractionné" },
+    2: { 2: "Endurance", 5: "Fractionné" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Sortie longue" },
+    4: { 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+    5: { 0: "Fractionné", 1: "Endurance", 3: "Fractionné", 5: "Libre", 6: "Sortie longue" },
+    6: { 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Sortie longue" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Fractionné", 6: "Sortie longue" },
+  },
+  "trail": {
+    1: { 2: "Endurance" },
+    2: { 2: "Endurance", 5: "Trail" },
+    3: { 1: "Endurance", 3: "Fractionné", 5: "Trail" },
+    4: { 1: "Endurance", 3: "Fractionné", 5: "Endurance", 6: "Trail" },
+    5: { 0: "Endurance", 1: "Fractionné", 3: "Endurance", 5: "Fractionné", 6: "Trail" },
+    6: { 1: "Endurance", 2: "Fractionné", 3: "Endurance", 4: "Fractionné", 5: "Endurance", 6: "Trail" },
+    7: { 0: "Endurance", 1: "Fractionné", 2: "Endurance", 3: "Fractionné", 4: "Endurance", 5: "Libre", 6: "Trail" },
+  }
+};
+
+function DraggableDayWorkout({ type, dayIdx }: { type: string, dayIdx: number }) {
+  const {attributes, listeners, setNodeRef, transform, isDragging} = useDraggable({
+    id: `day-workout-${dayIdx}`,
+    data: { type, fromDayIdx: dayIdx }
   });
   
   const style = transform ? {
@@ -47,14 +94,14 @@ function DraggableWorkoutType({ type }: { type: string }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="bg-black text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest cursor-grab active:cursor-grabbing hover:bg-gray-800 transition-all shadow-md text-center"
+      className={`bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter w-full text-center relative cursor-grab active:cursor-grabbing hover:bg-gray-800 transition-all shadow-md ${isDragging ? 'opacity-50' : ''}`}
     >
       {type}
     </div>
   );
 }
 
-function DaySlot({ dayIdx, type, onRemove }: { dayIdx: number, type: string | null, onRemove: () => void }) {
+function DaySlot({ dayIdx, type }: { dayIdx: number, type: string | null }) {
   const {setNodeRef, isOver} = useDroppable({
     id: `day-${dayIdx}`,
     data: { dayIdx }
@@ -69,20 +116,10 @@ function DaySlot({ dayIdx, type, onRemove }: { dayIdx: number, type: string | nu
       }`}
     >
       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{DAYS[dayIdx].slice(0, 3)}</span>
-      {type ? (
-        <div className="bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter w-full text-center relative group">
-          {type}
-          <button 
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      ) : (
-        <Plus className="w-4 h-4 text-gray-200" />
+      {type && (
+        <DraggableDayWorkout type={type} dayIdx={dayIdx} />
       )}
+      {!type && <Plus className="w-4 h-4 text-gray-200" />}
     </div>
   );
 }
@@ -127,6 +164,17 @@ function NewPlanPageContent() {
     setFormData(prev => ({...prev, start_date: nextMonday.toISOString().split('T')[0]}));
   }, []);
 
+  // Update training days automatically when goal or sessions per week change
+  useEffect(() => {
+    const defaults = DEFAULT_ASSIGNMENTS[formData.goal_type]?.[formData.sessions_per_week];
+    if (defaults) {
+      setFormData(prev => ({
+        ...prev,
+        training_days: { ...defaults }
+      }));
+    }
+  }, [formData.goal_type, formData.sessions_per_week]);
+
   const handleStartDateChange = (dateStr: string) => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return;
@@ -147,17 +195,25 @@ function NewPlanPageContent() {
     const {active, over} = event;
     
     if (over) {
+      const fromDayIdx = active.data.current?.fromDayIdx;
+      const toDayIdx = over.data.current?.dayIdx;
       const type = active.data.current?.type;
-      const dayIdx = over.data.current?.dayIdx;
       
-      if (type !== undefined && dayIdx !== undefined) {
-        setFormData(prev => ({
-          ...prev,
-          training_days: {
-            ...prev.training_days,
-            [dayIdx]: type
+      if (fromDayIdx !== undefined && toDayIdx !== undefined && fromDayIdx !== toDayIdx) {
+        setFormData(prev => {
+          const newDays = {...prev.training_days};
+          const targetType = newDays[toDayIdx];
+          
+          // Swap if there is already a workout at target, otherwise just move
+          newDays[toDayIdx] = type;
+          if (targetType) {
+            newDays[fromDayIdx] = targetType;
+          } else {
+            delete newDays[fromDayIdx];
           }
-        }));
+          
+          return {...prev, training_days: newDays};
+        });
       }
     }
   };
@@ -393,20 +449,10 @@ function NewPlanPageContent() {
             </div>
 
             <div className="space-y-6">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1 block">Jours d'entraînement (Drag & Drop)</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1 block">Jours d'entraînement (Déplacez les séances)</label>
               
               <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                 <div className="space-y-6">
-                  {/* Séance types selection */}
-                  <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-4">Types de séances</div>
-                    <div className="flex flex-wrap gap-2">
-                      {WORKOUT_CATEGORIES.map(type => (
-                        <DraggableWorkoutType key={type} type={type} />
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Weekly Calendar Drop Zones */}
                   <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
                     {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
@@ -414,7 +460,6 @@ function NewPlanPageContent() {
                         key={idx} 
                         dayIdx={idx} 
                         type={formData.training_days[idx] || null} 
-                        onRemove={() => removeDay(idx)}
                       />
                     ))}
                   </div>
@@ -422,7 +467,7 @@ function NewPlanPageContent() {
               </DndContext>
               
               <p className="text-[10px] text-gray-400 italic font-medium">
-                Glissez les types de séances sur les jours de votre choix. Le générateur complétera les jours manquants selon votre objectif si nécessaire.
+                Les types de séances sont fixés par votre objectif. Vous pouvez les déplacer d'un jour à l'autre par drag & drop.
               </p>
             </div>
             
