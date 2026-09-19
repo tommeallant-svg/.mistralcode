@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ChevronLeft, 
   Save, 
@@ -86,8 +86,11 @@ function DaySlot({ dayIdx, type, onRemove }: { dayIdx: number, type: string | nu
   );
 }
 
-export default function NewPlanPage() {
+function NewPlanPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const athleteId = searchParams.get('athleteId');
+  
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [existingPlan, setExistingPlan] = useState<any>(null);
@@ -168,7 +171,8 @@ export default function NewPlanPage() {
 
   useEffect(() => {
     const checkExistingPlan = async () => {
-      const res = await fetchWithAuth('/api/plans/current');
+      const url = athleteId ? `/api/plans/current?athlete_id=${athleteId}` : '/api/plans/current';
+      const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = await res.json();
         if (data) {
@@ -178,7 +182,7 @@ export default function NewPlanPage() {
       }
     };
     checkExistingPlan();
-  }, []);
+  }, [athleteId]);
 
   const handleArchive = async () => {
     if (!cancellationComment) {
@@ -210,12 +214,13 @@ export default function NewPlanPage() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
+          athlete_id: athleteId ? parseInt(athleteId) : null,
           race_date: new Date(formData.race_date).toISOString(),
           start_date: new Date(formData.start_date).toISOString(),
         })
       });
       if (res.ok) {
-        router.push('/');
+        router.push(athleteId ? `/?athleteId=${athleteId}` : '/');
       } else {
         const err = await res.json();
         alert(err.detail || 'Erreur lors de la création du plan');
@@ -276,7 +281,7 @@ export default function NewPlanPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30 px-6 py-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors font-black uppercase text-xs tracking-widest">
+          <Link href={athleteId ? `/?athleteId=${athleteId}` : "/"} className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors font-black uppercase text-xs tracking-widest">
             <ChevronLeft className="w-5 h-5" />
             <span>Retour</span>
           </Link>
@@ -451,5 +456,13 @@ export default function NewPlanPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewPlanPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-gray-400">Chargement...</div>}>
+      <NewPlanPageContent />
+    </Suspense>
   );
 }

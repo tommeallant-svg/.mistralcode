@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   format, 
   startOfMonth, 
@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Workout } from '@/types/workout';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   fetchWithAuth, 
   getAuthToken, 
@@ -126,8 +126,11 @@ function DayDroppable({ day, children, isToday, isNotCurrentMonth }: any) {
   );
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const athleteId = searchParams.get('athleteId');
+  
   const [user, setUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -152,13 +155,14 @@ export default function CalendarPage() {
     }
     const authUser = getAuthUser();
     setUser(authUser);
-    fetchWorkouts();
-    fetchCurrentPlan();
-  }, [router]);
+    fetchWorkouts(athleteId);
+    fetchCurrentPlan(athleteId);
+  }, [router, athleteId]);
 
-  const fetchWorkouts = async () => {
+  const fetchWorkouts = async (id?: string | null) => {
     try {
-      const response = await fetchWithAuth('/api/workouts');
+      const url = id ? `/api/workouts?athlete_id=${id}` : '/api/workouts';
+      const response = await fetchWithAuth(url);
       if (response.ok) {
         const data = await response.json();
         setWorkouts(data);
@@ -168,9 +172,10 @@ export default function CalendarPage() {
     }
   };
 
-  const fetchCurrentPlan = async () => {
+  const fetchCurrentPlan = async (id?: string | null) => {
     try {
-      const response = await fetchWithAuth('/api/plans/current');
+      const url = id ? `/api/plans/current?athlete_id=${id}` : '/api/plans/current';
+      const response = await fetchWithAuth(url);
       if (response.ok) {
         const data = await response.json();
         setCurrentPlan(data);
@@ -187,7 +192,11 @@ export default function CalendarPage() {
 
   const handleDeletePlan = async () => {
     if (!currentPlan) return;
-    if (!confirm("Êtes-vous sûr de vouloir supprimer votre plan d'entraînement actif ? Toutes les séances non validées seront supprimées.")) return;
+    const msg = athleteId 
+      ? "Êtes-vous sûr de vouloir supprimer le plan d'entraînement actif de cet athlète ? Toutes les séances non validées seront supprimées."
+      : "Êtes-vous sûr de vouloir supprimer votre plan d'entraînement actif ? Toutes les séances non validées seront supprimées.";
+    
+    if (!confirm(msg)) return;
     
     try {
       const response = await fetchWithAuth(`/api/plans/${currentPlan.id}`, {
@@ -196,7 +205,7 @@ export default function CalendarPage() {
       
       if (response.ok) {
         setCurrentPlan(null);
-        fetchWorkouts();
+        fetchWorkouts(athleteId);
       } else {
         alert("Erreur lors de la suppression du plan");
       }
@@ -250,7 +259,7 @@ export default function CalendarPage() {
         body: JSON.stringify({ date: newDate.toISOString() }),
       });
       if (response.ok) {
-        fetchWorkouts();
+        fetchWorkouts(athleteId);
         if (selectedWorkout?.id === workout.id) {
           const updated = await response.json();
           setSelectedWorkout(updated);
@@ -264,8 +273,13 @@ export default function CalendarPage() {
   const renderHeader = () => (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
       <div className="flex flex-col gap-2">
-        <h1 className="text-5xl font-black text-black tracking-tighter uppercase leading-none">
+        <h1 className="text-5xl font-black text-black tracking-tighter uppercase leading-none flex items-center gap-4">
           {format(currentDate, 'MMMM yyyy', { locale: fr })}
+          {athleteId && (
+            <span className="text-blue-600 text-2xl bg-blue-50 px-4 py-1 rounded-2xl border border-blue-100">
+              Vue Athlète
+            </span>
+          )}
         </h1>
         <div className="flex items-center gap-2 text-gray-400 font-bold uppercase text-xs tracking-widest">
           <CalendarIcon className="w-4 h-4" />
@@ -301,7 +315,7 @@ export default function CalendarPage() {
           </div>
         ) : (
           <Link
-            href="/plans/new"
+            href={athleteId ? `/plans/new?athleteId=${athleteId}` : "/plans/new"}
             className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
           >
             <Plus className="w-4 h-4" />
@@ -576,5 +590,13 @@ export default function CalendarPage() {
         />
       )}
     </main>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-gray-400">Chargement...</div>}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

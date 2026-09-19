@@ -21,7 +21,7 @@ class PlanBase(BaseModel):
         return v
 
 class PlanCreate(PlanBase):
-    pass
+    athlete_id: Optional[int] = None
 
 class PlanArchive(BaseModel):
     cancellation_comment: str

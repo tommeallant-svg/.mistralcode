@@ -86,10 +86,11 @@ export default function CoachPage() {
                     <div className="text-lg font-black text-black truncate w-48">{athlete.email}</div>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all">
+                    <button 
+                      onClick={() => router.push(`/?athleteId=${athlete.id}`)}
+                      className="p-3 bg-gray-50 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all"
+                      title="Voir le calendrier"
+                    >
                       <ExternalLink className="w-4 h-4" />
                     </button>
                   </div>
