@@ -16,6 +16,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Workout, WorkoutInterval, WorkoutBlock } from '@/types/workout';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function WorkoutDetailPage() {
   const { id } = useParams();
@@ -32,7 +33,7 @@ export default function WorkoutDetailPage() {
 
   const fetchWorkout = async () => {
     try {
-      const response = await fetch(`/api/workouts/${id}`);
+      const response = await fetchWithAuth(`/api/workouts/${id}`);
       if (!response.ok) throw new Error('Workout not found');
       const data = await response.json();
       setWorkout(data);
@@ -51,7 +52,7 @@ export default function WorkoutDetailPage() {
     e.preventDefault();
     setIsValidating(true);
     try {
-      const response = await fetch(`/api/workouts/${id}/validate`, {
+      const response = await fetchWithAuth(`/api/workouts/${id}/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

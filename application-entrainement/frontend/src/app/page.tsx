@@ -110,7 +110,7 @@ export default function CalendarPage() {
 
   const shiftWorkout = async (workout: Workout, newDate: Date) => {
     try {
-      const response = await fetch(`/api/workouts/${workout.id}`, {
+      const response = await fetchWithAuth(`/api/workouts/${workout.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: newDate.toISOString() }),
